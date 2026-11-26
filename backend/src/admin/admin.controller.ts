@@ -35,6 +35,13 @@ export class AdminController {
     private readonly quality: DataQualityService,
   ) {}
 
+  /**
+   * 수집 수동 실행 요청. run 행만 만들고 GitHub workflow_dispatch는 best-effort다(실패해도 다음 정기 실행이 처리).
+   *
+   * @param body 실행할 단계 목록
+   * @returns runId·dispatched
+   * @throws 409 RUN_ALREADY_ACTIVE · 403 FORBIDDEN(ADMIN 아님) · 403 DEMO_READ_ONLY(데모 관리자)
+   */
   @Post('ingestion/runs')
   @HttpCode(202)
   @ApiOperation({ summary: '수집 수동 실행 요청(workflow_dispatch)' })
@@ -42,30 +49,54 @@ export class AdminController {
     return this.ingestion.requestRun(u.id, body.stages);
   }
 
+  /**
+   * 수집 실행 이력(최신순, keyset).
+   *
+   * @param q limit·cursor
+   */
   @Get('ingestion/runs')
   @ApiOperation({ summary: '수집 실행 목록' })
   runs(@Query() q: RunsQueryDto) {
     return this.ingestion.listRuns(q);
   }
 
+  /**
+   * 실행 상세: 단계 체크포인트와 최근 실패.
+   *
+   * @throws 404 NOT_FOUND
+   */
   @Get('ingestion/runs/:id')
   @ApiOperation({ summary: '수집 실행 상세(단계·실패)' })
   run(@Param() p: IdParamDto) {
     return this.ingestion.runDetail(p.id);
   }
 
+  /**
+   * 열린 품질 이슈 종류별 수·마지막 실행의 GitHub 사용량·오늘 AI 사용량.
+   */
   @Get('data-quality/summary')
   @ApiOperation({ summary: '데이터 품질 요약 + 오늘 AI 사용량' })
   summary() {
     return this.quality.summary();
   }
 
+  /**
+   * 데이터 품질 이슈 목록(상태·종류 필터, keyset).
+   *
+   * @param q status·kind·limit·cursor
+   */
   @Get('data-quality/issues')
   @ApiOperation({ summary: '데이터 품질 이슈 목록' })
   issues(@Query() q: IssuesQueryDto) {
     return this.quality.listIssues(q);
   }
 
+  /**
+   * 이슈를 RESOLVED/IGNORED로 처리하고 처리자·메모를 남긴다.
+   *
+   * @param p 이슈 id · @param body status·note
+   * @throws 404 NOT_FOUND · 403 DEMO_READ_ONLY(데모 관리자)
+   */
   @Patch('data-quality/issues/:id')
   @ApiOperation({ summary: '이슈 처리(RESOLVED/IGNORED + 메모)' })
   resolve(

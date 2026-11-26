@@ -23,6 +23,13 @@ export class SearchService {
     private readonly aiStatus: AiStatusService,
   ) {}
 
+  /**
+   * FastAPI 하이브리드 검색을 호출하고 결과 itemId를 ItemCard로 채운다(1쿼리). 브라우저는 FastAPI를 직접 모른다.
+   *
+   * @param body 검증된 검색 쿼리
+   * @returns AI 순서를 유지한 카드 목록(그 사이 사라진 항목은 제외)
+   * @throws DomainException 503 SEARCH_WARMING | SEARCH_UNAVAILABLE
+   */
   async search(body: SearchQuery) {
     const res = await this.callAi(
       '/internal/search',
@@ -46,6 +53,12 @@ export class SearchService {
     };
   }
 
+  /**
+   * 검색 결과 기반 인용 답변을 FastAPI에 위임한다. 인용 검증과 예산 차감은 FastAPI 책임.
+   *
+   * @param body 검증된 답변 쿼리
+   * @throws DomainException 503 SEARCH_WARMING | SEARCH_UNAVAILABLE
+   */
   answer(body: AnswerQuery) {
     return this.callAi('/internal/search/answer', body, aiAnswerResponseSchema);
   }

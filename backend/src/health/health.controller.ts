@@ -16,6 +16,11 @@ export class HealthController {
     private readonly aiStatus: AiStatusService,
   ) {}
 
+  /**
+   * DB ping 결과와 AI 마지막 상태를 보고한다. DB가 죽어도 200으로 상태를 알려 배포 플랫폼이 원인을 볼 수 있게 한다.
+   *
+   * @returns {status, db: ok|down, ai: ok|down|unknown}
+   */
   @Public()
   @Get()
   @ApiOperation({ summary: '헬스체크 (DB ping 포함)' })

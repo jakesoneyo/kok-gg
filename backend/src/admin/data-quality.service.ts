@@ -20,6 +20,9 @@ const MICROS = 1_000_000;
 export class DataQualityService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * 관리자 홈 요약: 열린 이슈 종류별 수, 마지막 실행의 GitHub 호출량, 오늘 AI 예산 사용량(ai 계약 뷰).
+   */
   async summary() {
     const [open, lastRun, usage] = await Promise.all([
       this.prisma.dataQualityIssue.groupBy({
@@ -80,6 +83,12 @@ export class DataQualityService {
     };
   }
 
+  /**
+   * 품질 이슈 keyset 페이지((createdAt, id) 내림차순).
+   *
+   * @param q status·kind·cursor·limit
+   * @throws DomainException 400 INVALID_CURSOR
+   */
   async listIssues(q: {
     status: IssueStatus;
     kind?: DataQualityKind;

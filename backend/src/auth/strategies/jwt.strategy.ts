@@ -25,6 +25,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
+  /**
+   * 서명·만료 검증을 통과한 페이로드를 req.user로 바꾼다.
+   *
+   * @param payload 액세스 토큰 페이로드 · @returns 요청 사용자
+   */
   validate(payload: AccessTokenPayload): AuthenticatedUser {
     return { id: payload.sub, email: payload.email, role: payload.role };
   }

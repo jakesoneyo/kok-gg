@@ -13,6 +13,11 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     super();
   }
 
+  /**
+   * @Public()이면 passport를 건너뛰고(토큰을 읽지 않음), 아니면 Bearer JWT를 검증한다.
+   *
+   * @throws UnauthorizedException 401 토큰 없음/무효/만료
+   */
   canActivate(context: ExecutionContext) {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),

@@ -13,6 +13,13 @@ import { SearchService } from './search.service';
 export class SearchController {
   constructor(private readonly search: SearchService) {}
 
+  /**
+   * 자연어 검색. GET이라 엣지 캐시가 가능하고 캐시 히트는 레이트리밋·AI 예산을 쓰지 않는다.
+   *
+   * @param q 질의(q)·kind·level·limit
+   * @returns 질의·degraded(예산 소진 시 BM25만)·ItemCard가 채워진 결과
+   * @throws 400 VALIDATION_FAILED · 429 RATE_LIMITED(20/분/IP) · 503 SEARCH_WARMING/SEARCH_UNAVAILABLE
+   */
   @Get()
   @RateBucket('search')
   @PublicCacheable('search')
@@ -23,6 +30,13 @@ export class SearchController {
     return this.search.search(q);
   }
 
+  /**
+   * 검색 결과에 근거한 인용 답변. LLM 비용이 드니 검색보다 엄격히 5/분/IP로 제한한다.
+   *
+   * @param q 질의·kind·level
+   * @returns 답변(없으면 null)·인용 itemId·degraded·reason
+   * @throws 400 VALIDATION_FAILED · 429 RATE_LIMITED(5/분/IP) · 503 SEARCH_WARMING/SEARCH_UNAVAILABLE
+   */
   @Get('answer')
   @RateBucket('answer')
   @PublicCacheable('search')

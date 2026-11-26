@@ -18,6 +18,10 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
  */
 @Injectable()
 export class DemoReadOnlyGuard implements CanActivate {
+  /**
+   * @returns 통과 시 true
+   * @throws DomainException 403 DEMO_READ_ONLY 데모 관리자의 변경 요청
+   */
   canActivate(ctx: ExecutionContext): boolean {
     if (process.env.DEMO_ADMIN_READONLY === 'false') return true;
     const req = ctx

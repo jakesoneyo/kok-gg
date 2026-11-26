@@ -37,6 +37,7 @@ const sparklineSchema = z
   .length(7)
   .catch(Array<number | null>(7).fill(null)); // 배치가 쓴 JSON이 깨졌어도 목록 전체가 죽지 않게
 
+/** 목록·북마크·검색이 공유하는 저장소 요약. 카드 모양이 한 곳에서만 정의되게 둔다. */
 export function toRepoBrief(repo: ItemCardRow['repo']) {
   return {
     id: repo.id,
@@ -47,6 +48,11 @@ export function toRepoBrief(repo: ItemCardRow['repo']) {
   };
 }
 
+/**
+ * DB 행을 API ItemCard로 변환한다. 목록·검색·북마크가 모두 이 함수를 써서 응답 모양이 갈라지지 않는다.
+ *
+ * @param row ITEM_CARD_SELECT로 조회한 행
+ */
 export function toItemCard(row: ItemCardRow) {
   const { trendRank7d: rank, prevTrendRank7d: prev } = row;
   return {

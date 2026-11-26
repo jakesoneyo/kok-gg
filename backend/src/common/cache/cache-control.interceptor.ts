@@ -25,6 +25,11 @@ const SEARCH_DEGRADED = CACHE_PROFILES.search.replace(
 export class CacheControlInterceptor implements NestInterceptor {
   constructor(private readonly reflector: Reflector) {}
 
+  /**
+   * 핸들러의 캐시 프로필을 응답 Cache-Control에 반영한다. 프로필이 없으면 no-store(비공개 데이터 기본 보호).
+   *
+   * @param ctx 실행 컨텍스트 · @param next 핸들러 스트림
+   */
   intercept(ctx: ExecutionContext, next: CallHandler): Observable<unknown> {
     const profile = this.reflector.get<CacheProfile | undefined>(
       CACHE_PROFILE_KEY,

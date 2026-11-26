@@ -90,6 +90,12 @@ export class IngestionAdminService {
     }
   }
 
+  /**
+   * 실행 이력 keyset 페이지(id 내림차순). 실패 건수는 COUNT 서브쿼리 없이 _count로 한 번에 가져온다.
+   *
+   * @param q limit·cursor
+   * @throws DomainException 400 INVALID_CURSOR
+   */
   async listRuns(q: { cursor?: string; limit: number }) {
     const c = q.cursor ? decodeCursor(q.cursor, cursorSchema) : null;
     const rows = await this.prisma.ingestionRun.findMany({

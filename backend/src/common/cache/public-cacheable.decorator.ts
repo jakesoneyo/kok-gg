@@ -13,5 +13,10 @@ export type CacheProfile = keyof typeof CACHE_PROFILES;
 
 export const CACHE_PROFILE_KEY = 'cacheProfile';
 
+/**
+ * 공개 GET 핸들러에 캐시 프로필을 지정한다. 인증이 필요한 핸들러에는 쓰지 않는다(공유 캐시 오염 방지).
+ *
+ * @param profile CACHE_PROFILES의 키
+ */
 export const PublicCacheable = (profile: CacheProfile) =>
   SetMetadata(CACHE_PROFILE_KEY, profile);

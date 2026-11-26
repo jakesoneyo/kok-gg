@@ -2,6 +2,11 @@
 import type { z } from 'zod';
 import { DomainException } from '../errors/domain-exception';
 
+/**
+ * 정렬 키 값을 불투명 토큰으로 인코딩한다. 서명하지 않으므로 신뢰하지 말고 decodeCursor로 검증해 쓴다.
+ *
+ * @param payload JSON 직렬화 가능한 키 값 · @returns base64url 문자열
+ */
 export function encodeCursor(payload: object): string {
   return Buffer.from(JSON.stringify(payload)).toString('base64url');
 }

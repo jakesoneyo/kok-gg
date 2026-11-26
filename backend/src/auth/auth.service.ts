@@ -32,6 +32,13 @@ export class AuthService {
     private readonly jwt: JwtService,
   ) {}
 
+  /**
+   * 이메일 중복을 확인하고 사용자를 만든 뒤 바로 로그인 상태(토큰 쌍)로 돌려준다.
+   *
+   * @param dto 검증을 통과한 가입 입력
+   * @returns 공개 사용자 정보 + 토큰 쌍
+   * @throws DomainException 409 AUTH_EMAIL_TAKEN
+   */
   async register(dto: RegisterDto) {
     const existing = await this.prisma.user.findUnique({
       where: { email: dto.email },
@@ -53,6 +60,13 @@ export class AuthService {
     };
   }
 
+  /**
+   * 이메일·비밀번호로 인증하고 토큰 쌍을 발급한다. 데모 admin도 예외 없이 bcrypt.compare를 통과해야 한다.
+   *
+   * @param dto 로그인 입력
+   * @returns 공개 사용자 정보 + 토큰 쌍
+   * @throws DomainException 401 AUTH_INVALID_CREDENTIALS(계정 없음과 비밀번호 불일치를 합쳐 존재 여부 비노출)
+   */
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
@@ -77,6 +91,10 @@ export class AuthService {
   /**
    * 리프레시 회전 + 재사용 탐지. 이미 폐기된(=한 번 회전에 쓰인) 토큰이 다시 들어오면
    * 탈취로 간주해 같은 familyId 전체를 폐기한다.
+   *
+   * @param refreshToken 클라이언트가 가진 refresh 토큰 원문
+   * @returns 새 토큰 쌍(같은 계열)
+   * @throws DomainException 401 AUTH_REFRESH_INVALID(없음/만료) | AUTH_REFRESH_REUSE(재사용·동시 이중 사용)
    */
   async refresh(refreshToken: string): Promise<TokenPair> {
     const stored = await this.prisma.refreshToken.findUnique({
@@ -131,6 +149,11 @@ export class AuthService {
     );
   }
 
+  /**
+   * 해당 refresh 토큰만 폐기한다(다른 기기의 세션은 유지). 본인 소유 토큰만 대상.
+   *
+   * @param userId 요청자 · @param refreshToken 폐기할 토큰 원문
+   */
   async logout(userId: number, refreshToken: string): Promise<void> {
     // 없거나 이미 폐기된 토큰이어도 조용히 204 — "내 세션 종료"에 정보 노출은 불필요하다.
     await this.prisma.refreshToken.updateMany({
@@ -143,6 +166,12 @@ export class AuthService {
     });
   }
 
+  /**
+   * 현재 사용자 정보와 데모 계정 여부.
+   *
+   * @param userId 인증된 사용자 id
+   * @throws Prisma P2025 사용자가 삭제된 경우(필터가 404 처리)
+   */
   async me(userId: number) {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },

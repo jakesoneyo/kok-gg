@@ -56,6 +56,9 @@ export class BookmarksService {
     };
   }
 
+  /**
+   * 북마크한 항목 id 목록(최근순, 최대 1000).
+   */
   async ids(userId: number) {
     const rows = await this.prisma.bookmark.findMany({
       where: { userId },
@@ -86,6 +89,9 @@ export class BookmarksService {
     return { created: count === 1, itemId, seenLevel: item.currentLevel };
   }
 
+  /**
+   * 북마크 삭제. 없어도 오류 없이 끝난다(멱등).
+   */
   async remove(userId: number, itemId: number): Promise<void> {
     await this.prisma.bookmark.deleteMany({ where: { userId, itemId } });
   }

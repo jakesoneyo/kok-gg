@@ -13,6 +13,12 @@ import { DomainException } from '../errors/domain-exception';
 export class AdminGuard implements CanActivate {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * DB의 현재 role이 ADMIN인지 확인한다.
+   *
+   * @returns 통과 시 true
+   * @throws DomainException 403 FORBIDDEN
+   */
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
     const user = ctx
       .switchToHttp()

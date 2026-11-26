@@ -5,6 +5,11 @@ import { DomainException } from '../errors/domain-exception';
 
 @Injectable()
 export class AppThrottlerGuard extends ThrottlerGuard {
+  /**
+   * 429를 공통 에러 포맷으로 던진다. Retry-After는 차단·윈도우 만료 중 더 긴 쪽(최소 1초).
+   *
+   * @throws DomainException 429 RATE_LIMITED
+   */
   protected throwThrottlingException(
     _ctx: ExecutionContext,
     detail: ThrottlerLimitDetail,
