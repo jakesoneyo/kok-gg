@@ -4,6 +4,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
 import { randomUUID } from 'node:crypto';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
 import { BookmarksModule } from './bookmarks/bookmarks.module';
 import { CatalogModule } from './catalog/catalog.module';
@@ -45,6 +46,7 @@ import { PrismaModule } from './prisma/prisma.module';
     CatalogModule,
     BookmarksModule,
     SearchModule,
+    AdminModule,
   ],
   controllers: [HealthController],
   providers: [
