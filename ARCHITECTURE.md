@@ -130,7 +130,7 @@ flowchart TD
 
 - 인증은 **fine-grained PAT(공개 저장소 읽기 전용)** `GITHUB_TOKEN_INGEST`. Actions 기본 `GITHUB_TOKEN`은 저장소당 1000/h이고 코드 검색에 쓰기 애매하므로 쓰지 않는다.
 - 클라이언트(`github.client.ts`, native `fetch`): 리소스별 토큰 버킷, `x-ratelimit-remaining/reset` 추적, 403/429·`retry-after` 지수 백오프, Star History의 `422`("spammed")도 백오프 대상. 동시 요청 ≤ 4(2차 한도 100 동시 대비 넉넉하게).
-- 파일 원문: 우선 `raw.githubusercontent.com/{o}/{r}/{sha}/{path}`(core 미차감으로 알려져 있음 **[미검증]**), 실패 시 `GET /repos/{o}/{r}/contents/{path}?ref={sha}`. 파일당 256KB, 항목당 2MB, 200파일 상한.
+- 파일 원문: 우선 `raw.githubusercontent.com/{o}/{r}/{sha}/{path}`(core 미차감으로 알려져 있음 **[미검증]**) — 같은 스모크가 `/rate_limit` 전후 차이로 측정한다., 실패 시 `GET /repos/{o}/{r}/contents/{path}?ref={sha}`. 파일당 256KB, 항목당 2MB, 200파일 상한.
 - 트리 응답 `truncated: true`(초대형 저장소)면 그 저장소는 `TOO_LARGE`로 표시하고 건너뜀.
 
 ### 3.4 판별 · 마켓플레이스 펼치기
@@ -161,7 +161,7 @@ flowchart TD
 | `official_added` | 공식 Star History `days[]`                                          | 그날 생긴 스타 중 **지금도 남은 것**(GitHub 공학 블로그: 언스타 시 기록 삭제) → 과거 값이 줄 수 있음 |
 | `external_added` | OSS Insight `stargazers/history?per=day` **[미검증: per=day 지원]** | 제3자 집계. 선택                                                                                     |
 
-**공식 Star History 응답(문서 확인)**: `GET /repos/{owner}/{repo}/stargazers/history`, `per_page`(최대 30)·`page`(최대 100), 최신 주부터 과거로. 원소 `{ week: integer, total: integer, days: integer[7] }`, `days`는 **일요일 시작**, 주·일 경계는 **UTC 보장 안 됨**. 공개 저장소는 무인증 가능하다는 보도가 있으나 우리는 PAT로 core 한도 안에서 호출. **[미검증]** `week`가 Unix 초(커밋 활동 API와 동일 형식)인지, 이번 주(부분) 포함 여부 → PLAN C4-0에서 실제 응답 캡처 후 픽스처화.
+**공식 Star History 응답(문서 확인)**: `GET /repos/{owner}/{repo}/stargazers/history`, `per_page`(최대 30)·`page`(최대 100), 최신 주부터 과거로. 원소 `{ week: integer, total: integer, days: integer[7] }`, `days`는 **일요일 시작**, 주·일 경계는 **UTC 보장 안 됨**. 공개 저장소는 무인증 가능하다는 보도가 있으나 우리는 PAT로 core 한도 안에서 호출. **[미검증]** `week`가 Unix 초(커밋 활동 API와 동일 형식)인지, 이번 주(부분) 포함 여부 → PLAN C4-0에서 실제 응답 캡처 후 픽스처화. **C4 상태(2026-11-26)**: 토큰이 없어 캡처 보류 — 클라이언트(`github.client.ts`)와 `officialDays()`는 문서 기준(`week` = Unix 초, 일요일 시작)으로 작성했고 형식이 다르면 zod가 `PARSE_ERROR`로 드러낸다. 토큰 확보 후 `GITHUB_LIVE_TOKEN=… npx jest --config ./test/jest-e2e.json github-live`(opt-in 스모크)가 `test/fixtures/github/*.json`을 캡처한다.
 
 - 백필 깊이: **page=1(최근 30주)만**. 트렌딩 30일 + 직전 30일 = 60일이면 충분. 차트는 30주 + 이후 자체 스냅샷.
 - 공식 값은 `day < as_of`만 저장(당일은 부분값).
@@ -186,6 +186,7 @@ gain(d) = snapshot_total(d) − snapshot_total(d−1)   # 둘 다 있을 때
 | 급감                    | `snapshot_total(d) < 0.8 · snapshot_total(d−1)`                                        | `STAR_ANOMALY`            |
 | 공식 호출 실패          | 백필 대상인데 3회 재시도 실패                                                          | `OFFICIAL_HISTORY_FAILED` |
 
+- 호출 규약: 공식 값은 `day < as_of`만 저장하므로 배치는 `crossValidateStars`에 **마지막 완결일(`as_of − 1`)** 을 기준일로 넘긴다(당일을 넣으면 공식 값이 항상 비어 7일 합 비교가 성립하지 않는다). `OFFICIAL_HISTORY_FAILED`는 호출자(quality 단계)가 star-history 단계의 실패 기록으로 만든다.
 - 일 단위가 아니라 **7일 합으로 비교**하는 이유: 공식 기록의 일 경계가 UTC 보장이 아니고, 우리 스냅샷은 "전날 03시~오늘 03시(KST)" 구간이라 하루 단위로는 경계가 항상 어긋난다. 7일 합이면 경계 오차는 양 끝 하루분으로 희석된다.
 - 허용오차의 `0.15`는 "언스타(스냅샷엔 반영, 공식엔 '삭제'로 반영)" 시차를 흡수하는 값. 운영 데이터로 재조정하고 근거를 README에 남긴다.
 - **External History 상태**: OSS Insight 공식 문서에 "2026-12-04 종료, API 중단" 배너가 있다. 그래서 `EXTERNAL_STAR_SOURCE=none`이 기본이고, `ossinsight`로 켜더라도 `EXTERNAL_STAR_SOURCE_UNTIL`(기본 2026-12-03) 이후엔 어댑터가 스스로 비활성. 공식 호출 실패 시 대체(fallback)도 이 어댑터가 살아 있을 때만. 상설 대체는 "자체 스냅샷만으로 계속 + 공식은 다음 실행 재시도"다.
