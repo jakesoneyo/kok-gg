@@ -160,7 +160,7 @@ export class SecurityScanStage implements Stage {
     let bytes = 0;
     const load = async (e: TreeEntry) => {
       if (loaded.has(e.path)) return;
-      // 상한 초과 파일은 받지 않고 truncated로 표시 → 엔진이 R16(분석 불가 실행파일)로 처리
+      // 상한 초과 파일은 받지 않고 truncated로 표시 → 엔진이 R16(분석 불가)로 처리(설정 JSON·SKILL.md도 동일, fail-closed)
       if (e.size > MAX_FILE_BYTES || bytes + e.size > MAX_ITEM_BYTES) {
         loaded.set(e.path, { path: e.path, content: '', truncated: true });
         return;
@@ -171,7 +171,11 @@ export class SecurityScanStage implements Stage {
         repo.head_sha,
         e.path,
       );
-      if (text === null) return;
+      if (text === null) {
+        // 트리에 있는데 받지 못한 파일을 건너뛰면 미검사가 SAFE로 보인다 → 분석 불가로 표시
+        loaded.set(e.path, { path: e.path, content: '', truncated: true });
+        return;
+      }
       bytes += e.size;
       loaded.set(e.path, { path: e.path, content: text });
     };

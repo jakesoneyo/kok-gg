@@ -18,10 +18,10 @@ import type {
 import { RULE_SET_VERSION } from './version';
 
 const EXCERPT_MAX = 200;
-// 제어문자·양방향 제어문자 제거(표시용). UI는 항상 텍스트 노드로 렌더한다.
+// 제어·양방향·제로폭·Tag 문자 제거(표시용). UI는 항상 텍스트 노드로 렌더한다.
 const UNSAFE_DISPLAY = new RegExp(
-  String.raw`[\u0000-\u001F\u007F\u202A-\u202E\u2066-\u2069]`,
-  'g',
+  String.raw`[\u0000-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF\u{E0000}-\u{E007F}]`,
+  'gu',
 );
 
 /** 한 Target에 해당 영역의 규칙을 모두 적용. 바이너리·초과 파일은 R16만. */

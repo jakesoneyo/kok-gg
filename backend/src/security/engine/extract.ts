@@ -12,9 +12,24 @@ const JSON_NAMES = new Set([
   '.mcp.json',
   'monitors.json',
 ]);
+const baseName = (p: string) => p.slice(p.lastIndexOf('/') + 1);
+
+/**
+ * 검사 대상 설정 JSON인가. `settings.json`은 `.claude/` 루트(HOOK 항목)에서만 설정으로 본다 —
+ * 그 밖의 settings.json은 훅 정의 파일이 아니다. scan-files(파일 선택)와 같은 기준을 쓰려고 공개한다.
+ * @param rel 항목 루트 기준 상대 경로
+ * @param root 항목 루트(저장소 기준 디렉터리)
+ */
+export function isConfigJson(rel: string, root: string): boolean {
+  if (JSON_NAMES.has(baseName(rel))) return true;
+  return rel === 'settings.json' && baseName(root) === '.claude';
+}
 const SCRIPT_EXT = /\.(?:sh|bash|zsh|py|js|ts|mjs|cjs)$/;
 const NUL_SCAN_BYTES = 8192;
 const REF_RE = /\$\{?CLAUDE_PLUGIN_ROOT\}?\/([^\s"'`;|&)<>]+)/g;
+// 프로젝트 훅(.claude/settings.json)은 `$CLAUDE_PROJECT_DIR/…` 또는 저장소 기준 `.claude/…`로 스크립트를 부른다
+const PROJECT_REF_RE =
+  /(?:\$\{?CLAUDE_PROJECT_DIR\}?\/|(?<![\w./-])(?:\.\/)?(?=\.claude\/))([^\s"'`;|&)<>]+)/g;
 
 const SHELL_LANGS = new Set([
   '',
@@ -41,7 +56,6 @@ const SCRIPT_LANGS = new Set([
 type Json = Record<string, unknown>;
 const isObj = (v: unknown): v is Json =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
-const baseName = (p: string) => p.slice(p.lastIndexOf('/') + 1);
 
 const isOpaque = (f: ScanFile) =>
   !!f.truncated || f.content.slice(0, NUL_SCAN_BYTES).includes('\0');
@@ -96,6 +110,18 @@ export function extractTargets(input: ScanInput): {
     });
   };
 
+  const addOpaque = (f: ScanFile) => {
+    if (scriptsAdded.has(f.path)) return;
+    scriptsAdded.add(f.path);
+    targets.push({
+      region: 'script',
+      filePath: f.path,
+      text: '',
+      lineOffset: 0,
+      opaque: true,
+    });
+  };
+
   /** 플러그인 루트 기준 상대 경로 정규화. 루트 탈출은 따라가지 않고 기록만. */
   const resolveRef = (ref: string, from: string): ScanFile | null => {
     const stack: string[] = [];
@@ -118,6 +144,13 @@ export function extractTargets(input: ScanInput): {
       const f = resolveRef(m[1], from);
       if (f) addScript(f);
     }
+    for (const m of command.matchAll(PROJECT_REF_RE)) {
+      // 저장소 기준 경로 → 항목 루트 기준. 루트 밖 참조는 이 항목의 파일이 아니라 따라가지 않는다
+      if (root && !m[1].startsWith(`${root}/`)) continue;
+      const rel = root ? m[1].slice(root.length + 1) : m[1];
+      const f = resolveRef(rel, from);
+      if (f) addScript(f);
+    }
   };
 
   const jsonDone = new Set<string>();
@@ -126,10 +159,13 @@ export function extractTargets(input: ScanInput): {
     jsonDone.add(file.path);
     let doc: unknown;
     try {
-      if (file.truncated) throw new Error('truncated');
-      doc = JSON.parse(file.content);
+      if (isOpaque(file)) throw new Error('opaque');
+      // 선행 BOM은 JSON.parse가 거부한다 — 그대로 두면 파싱 실패가 우회 수단이 된다
+      doc = JSON.parse(file.content.replace(/^\uFEFF/, ''));
     } catch {
+      // fail-closed: 읽지 못한 설정 파일은 R16(분석 불가)으로 남겨 SAFE가 되지 못하게 한다
       notes.push({ path: file.path, reason: 'PARSE_ERROR' });
+      addOpaque(file);
       return;
     }
     const locate = makeLocator(file.content);
@@ -195,19 +231,23 @@ export function extractTargets(input: ScanInput): {
   const skillDirs: string[] = [];
   for (const [rel, file] of byRel) {
     const name = baseName(rel);
-    if (JSON_NAMES.has(name)) processJson(rel, file);
+    if (isConfigJson(rel, root)) processJson(rel, file);
     else if (name === 'SKILL.md') {
       skillDirs.push(rel.slice(0, Math.max(rel.lastIndexOf('/'), 0)));
-      extractSkillMd(file, targets);
+      if (isOpaque(file)) addOpaque(file);
+      else extractSkillMd(file, targets);
     } else if (rel.startsWith('bin/')) addScript(file);
   }
 
   for (const [rel, file] of byRel) {
     if (!SCRIPT_EXT.test(rel)) continue;
     // 루트 SKILL.md는 저장소 전체가 아니라 scripts/ 아래만 스킬 스크립트로 본다
-    const inSkill = skillDirs.some((d) =>
-      d ? rel.startsWith(`${d}/`) : rel.startsWith('scripts/'),
-    );
+    // hooks/ 아래는 참조 여부와 무관하게 훅이 실행할 수 있는 코드라 항상 검사(scan-files 선택 기준과 동일)
+    const inSkill =
+      rel.startsWith('hooks/') ||
+      skillDirs.some((d) =>
+        d ? rel.startsWith(`${d}/`) : rel.startsWith('scripts/'),
+      );
     if (inSkill) addScript(file);
   }
   return { targets, notes };

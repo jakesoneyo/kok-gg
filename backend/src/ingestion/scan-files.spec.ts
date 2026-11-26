@@ -7,6 +7,29 @@ import {
 const e = (...paths: string[]) => paths.map((path) => ({ path, size: 10 }));
 
 describe('selectScanFiles', () => {
+  it('REVIEW B1: 설정 JSON → SKILL.md → 스크립트 순(예산 소진이 설정 파일을 밀어내지 못함)', () => {
+    const { files } = selectScanFiles(
+      e('scripts/a.sh', 'bin/t', 'skills/s/SKILL.md', 'hooks/hooks.json'),
+      '',
+    );
+    expect(files.map((f) => f.path)).toEqual([
+      'hooks/hooks.json',
+      'skills/s/SKILL.md',
+      'scripts/a.sh',
+      'bin/t',
+    ]);
+  });
+  it('REVIEW B2: .claude 루트에서만 settings.json 선택, hooks/*.sh 포함', () => {
+    const { files } = selectScanFiles(
+      e('.claude/settings.json', '.claude/hooks/x.sh', 'settings.json'),
+      '.claude',
+    );
+    expect(files.map((f) => f.path)).toEqual([
+      '.claude/settings.json',
+      '.claude/hooks/x.sh',
+    ]);
+    expect(selectScanFiles(e('settings.json'), '').files).toEqual([]);
+  });
   it('설정 JSON·SKILL.md·bin·스킬/훅/scripts 아래 스크립트만, 루트 밖은 제외', () => {
     const { files } = selectScanFiles(
       e(
