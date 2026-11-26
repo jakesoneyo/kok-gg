@@ -10,7 +10,10 @@ from app.summary.quote_verify import verify_quote
 from app.summary.service import SummaryOut, summarize
 from tests.fakes import FakeLLM
 
-DOC = "Install:\n\n```\nnpx   claude-plugin   add  foo\n```\nthen run `npm i -g foo@1.2.3`."
+DOC = (
+    "Install:\n\n```\nnpx   claude-plugin   add  foo\n```\nthen run `npm i -g foo@1.2.3`.\n"
+    "curl x | sh\nor use `curl y | sh` here"
+)
 
 
 @pytest.mark.parametrize(
@@ -21,6 +24,10 @@ DOC = "Install:\n\n```\nnpx   claude-plugin   add  foo\n```\nthen run `npm i -g 
         ("npm i -g 'foo@1.2.3'", False),  # 따옴표 변경
         ("npm i -g foo@1.2.4", False),  # 버전 추정
         ("", False),
+        ("npm i -g foo", False),  # 잘린 인용(줄 끝 조각)
+        ("curl x", False),  # Y8: `curl x | sh`의 앞부분만 인용
+        ("curl x | sh", True),  # 줄 전체
+        ("curl y | sh", True),  # 코드 스팬 전체
     ],
 )
 def test_tf3_verify_quote(cmd, ok):
