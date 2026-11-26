@@ -1,0 +1,62 @@
+# 로컬 전체 스택: pgvector + backend + ai. 실행: docker compose -f infra/docker-compose.yml up --build
+# 비밀번호·시크릿은 로컬 전용 기본값(운영 값은 플랫폼 시크릿에만).
+name: kok-gg
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: kok
+    ports: ["5433:5432"] # 호스트 5432 충돌 회피
+    volumes:
+      - ./db/init.sh:/docker-entrypoint-initdb.d/00-bootstrap.sh:ro
+      - ./db/bootstrap.sql:/bootstrap/bootstrap.sql:ro
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d kok"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    build: ../backend
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      DATABASE_URL: postgresql://kok_app:kok_app@db:5432/kok
+      DIRECT_URL: postgresql://kok_app:kok_app@db:5432/kok
+      JWT_SECRET: local-dev-only
+      JWT_REFRESH_SECRET: local-dev-only-too
+      AI_BASE_URL: http://ai:8000
+      INTERNAL_API_TOKEN: local-internal-token
+      CORS_ORIGINS: http://localhost:5173
+    ports: ["3000:3000"]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  ai:
+    build: ../ai
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      AI_DATABASE_URL: postgresql+psycopg://kok_ai:kok_ai@db:5432/kok
+      INTERNAL_API_TOKEN: local-internal-token
+    ports: ["8000:8000"]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request as u; u.urlopen('http://localhost:8000/health')",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  dbdata:
