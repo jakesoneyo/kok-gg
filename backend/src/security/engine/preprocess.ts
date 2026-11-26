@@ -38,13 +38,16 @@ export function preprocess(text: string, region: Region): Line[] {
       parts.length === 1
         ? cur
         : parts.map((p, k) => (k ? ` ${p}` : p)).join('');
+    const long = joined.length > MAX_LINE_LENGTH;
+    // 공백 패딩·줄 잇기 폭탄은 공백만 접어도 대부분 사라져 창 수(=규칙 실행 시간)가 줄어든다
+    const body = long ? joined.replace(/[ \t]{2,}/g, ' ') : joined;
     for (let at = 0; ; at += WINDOW_STEP) {
       out.push({
         line: start,
-        text: joined.slice(at, at + MAX_LINE_LENGTH),
-        truncated: at === 0 && joined.length > MAX_LINE_LENGTH,
+        text: body.slice(at, at + MAX_LINE_LENGTH),
+        truncated: at === 0 && long,
       });
-      if (at + MAX_LINE_LENGTH >= joined.length) break;
+      if (at + MAX_LINE_LENGTH >= body.length) break;
     }
   }
   return out;
