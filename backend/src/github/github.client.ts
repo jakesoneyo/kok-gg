@@ -373,8 +373,19 @@ export class HttpGithubClient extends GithubClient {
     };
   }
 
+  /**
+   * `owner/name`으로 저장소 1개 조회. 마켓플레이스처럼 신뢰할 수 없는 문자열이 들어오므로 `.`·`..` 세그먼트는
+   * 호출 없이 null(다른 API 경로로 PAT가 쓰이는 것 방지)로 두고 세그먼트별로 인코딩한다.
+   * @returns 없거나 형식이 잘못되면 null
+   */
   async getRepo(fullName: string): Promise<GhRepo | null> {
-    const body = await this.json('core', `/repos/${fullName}`);
+    const parts = fullName.split('/');
+    if (parts.length !== 2 || parts.some((p) => !p || p === '.' || p === '..'))
+      return null;
+    const body = await this.json(
+      'core',
+      `/repos/${parts.map(encodeURIComponent).join('/')}`,
+    );
     return body ? mapRepo(body) : null;
   }
 

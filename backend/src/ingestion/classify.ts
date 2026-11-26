@@ -120,6 +120,9 @@ function parseJson(text: string | undefined): Json | null {
 const GITHUB_URL =
   /^(?:https:\/\/)?github\.com\/([\w.-]+)\/([\w.-]+?)(?:\.git)?\/?$/;
 
+/** `.`·`..`는 `[\w.-]+`에 맞지만 GitHub 이름이 될 수 없다 — 경로 세그먼트로 쓰이면 `/repos/../..` 같은 다른 API 경로가 된다. */
+const realName = (seg: string) => seg !== '.' && seg !== '..';
+
 /** 마켓플레이스 source 한 개 → Item 귀속(ARCHITECTURE 3.4 표). */
 function resolveSource(
   name: string,
@@ -144,8 +147,13 @@ function resolveSource(
   }
   if (!isObj(source)) return unsupported;
   const sub = (p: string) =>
-    /^[\w.-]+\/[\w.-]+$/.test(p) ? p.split('/') : null;
-  const gh = (url: string) => GITHUB_URL.exec(url);
+    /^[\w.-]+\/[\w.-]+$/.test(p) && p.split('/').every(realName)
+      ? p.split('/')
+      : null;
+  const gh = (url: string) => {
+    const m = GITHUB_URL.exec(url);
+    return m && realName(m[1]) && realName(m[2]) ? m : null;
+  };
 
   if (source.source === 'github' && typeof source.repo === 'string') {
     const t = sub(source.repo.replace(/\.git$/, ''));

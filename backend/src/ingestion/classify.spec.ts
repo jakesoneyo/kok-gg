@@ -205,3 +205,23 @@ describe('REVIEW B4 — marketplace.json의 NUL 이스케이프', () => {
     expect(r.items[0].name).toBe('pq');
   });
 });
+
+describe('REVIEW Y10 — owner/name의 점 세그먼트 거부', () => {
+  const src = (source: unknown) => {
+    const mp = JSON.stringify({ name: 'm', plugins: [{ name: 'p', source }] });
+    return run([MP], { [MP]: mp });
+  };
+  it.each([
+    { source: 'github', repo: '../..' },
+    { source: 'github', repo: './x' },
+    { source: 'url', url: 'https://github.com/../..' },
+    { source: 'git-subdir', url: 'https://github.com/a/..', path: 'x' },
+  ])('%j → UNSUPPORTED, 참조 없음', (source) => {
+    const r = src(source);
+    expect(r.items[0].sourceType).toBe('UNSUPPORTED');
+    expect(r.refs).toEqual([]);
+  });
+  it('정상 owner/name은 그대로', () => {
+    expect(src({ source: 'github', repo: 'a.b/c-d_e.f' }).refs).toHaveLength(1);
+  });
+});

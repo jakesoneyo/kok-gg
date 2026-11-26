@@ -135,6 +135,14 @@ describe('HttpGithubClient', () => {
     expect(b.client.usage().core).toBe(1);
   });
 
+  it('REVIEW Y10: getRepo는 세그먼트별로 인코딩하고 점 세그먼트는 호출하지 않는다', async () => {
+    const a = setup(() => json({ message: 'nf' }, {}, 404));
+    await expect(a.client.getRepo('../..')).resolves.toBeNull();
+    expect(a.urls).toEqual([]);
+    await a.client.getRepo('o/r?x');
+    expect(a.urls[0]).toContain('/repos/o/r%3Fx');
+  });
+
   it('REVIEW B4: getFile은 raw·contents 경로 모두 NUL을 제거한다(Postgres text는 NUL 거부)', async () => {
     const raw = setup(() => new Response('a\0b'));
     expect(await raw.client.getFile('o', 'r', 'sha', 'a.md')).toBe('ab');
