@@ -23,9 +23,12 @@ export function parseCliArgs(argv: string[]) {
         return s as StageName;
       })
     : undefined;
+  const runId = values['run-id'] ? Number(values['run-id']) : undefined;
+  if (runId !== undefined && !Number.isInteger(runId))
+    throw new Error('--run-id는 정수');
   return {
     asOf,
-    runId: values['run-id'] ? Number(values['run-id']) : undefined,
+    runId,
     stages,
   };
 }

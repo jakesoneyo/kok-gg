@@ -27,5 +27,6 @@ describe('parseCliArgs', () => {
     expect(() => parseCliArgs(['nope'])).toThrow();
     expect(() => parseCliArgs(['ingest', '--as-of', '11/26'])).toThrow();
     expect(() => parseCliArgs(['ingest', '--stages', 'BOGUS'])).toThrow();
+    expect(() => parseCliArgs(['ingest', '--run-id', 'abc'])).toThrow();
   });
 });

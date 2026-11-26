@@ -34,6 +34,6 @@ export function loadIngestConfig(
     topics: DEFAULT_TOPICS,
     externalSource:
       env.EXTERNAL_STAR_SOURCE === 'ossinsight' ? 'ossinsight' : 'none',
-    externalUntil: env.EXTERNAL_STAR_SOURCE_UNTIL ?? '2026-12-03',
+    externalUntil: env.EXTERNAL_STAR_SOURCE_UNTIL || '2026-12-03',
   };
 }

@@ -99,7 +99,10 @@ export class SecurityScanStage implements Stage {
       try {
         const [status, result] =
           item.sourceType === 'UNSUPPORTED'
-            ? this.scanUnsupported(rawByItem.get(item.id))
+            ? this.scanUnsupported(
+                rawByItem.get(item.id),
+                await this.security.activeFingerprints(item.id),
+              )
             : await this.scanFiles(repo, item, tree!);
         await this.security.saveScan(
           item.id,
@@ -124,10 +127,10 @@ export class SecurityScanStage implements Stage {
    * 지원하지 않는 source는 분석 불가가 원칙이지만, `command` 소스는 선언 자체가 위험 신호(R14)이므로
    * 그 항목 하나만 합성 marketplace.json으로 엔진을 돌려 ANALYZED로 남긴다.
    */
-  private scanUnsupported(entry?: {
-    entryName: string;
-    rawSource: unknown;
-  }): [ScanStatus, ScanResult?] {
+  private scanUnsupported(
+    entry: { entryName: string; rawSource: unknown } | undefined,
+    suppressed: string[],
+  ): [ScanStatus, ScanResult?] {
     const raw = entry?.rawSource as { source?: string } | null | undefined;
     if (raw?.source !== 'command') return ['UNSUPPORTED'];
     const content = JSON.stringify(
@@ -137,7 +140,10 @@ export class SecurityScanStage implements Stage {
     );
     return [
       'ANALYZED',
-      scan({ files: [{ path: '.claude-plugin/marketplace.json', content }] }),
+      scan(
+        { files: [{ path: '.claude-plugin/marketplace.json', content }] },
+        suppressed,
+      ),
     ];
   }
 
