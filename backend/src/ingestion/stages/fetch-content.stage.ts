@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import { GithubClient } from '../../github/github.client';
 import {
   GithubError,
+  MAX_FILE_BYTES,
   stripNul,
   type TreeEntry,
 } from '../../github/github.types';
@@ -23,7 +24,12 @@ export function docCandidates(
   root: string,
   entries: readonly TreeEntry[],
 ): string[] {
-  const byLower = new Map(entries.map((e) => [e.path.toLowerCase(), e.path]));
+  // 상한을 넘는 파일은 후보에서 빼 호출·메모리를 아낀다(REVIEW Y9)
+  const byLower = new Map(
+    entries
+      .filter((e) => e.size <= MAX_FILE_BYTES)
+      .map((e) => [e.path.toLowerCase(), e.path]),
+  );
   const at = (dir: string, file: string) =>
     byLower.get((dir ? `${dir}/${file}` : file).toLowerCase());
   return [

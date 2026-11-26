@@ -1,7 +1,11 @@
 // 저장소 1개 판별: 트리 1회 + 증거 JSON 읽기 → classify → Item·마켓플레이스 upsert. qualify(신규)와 fetch-content(변경분)가 공유한다.
 import { Inject, Injectable } from '@nestjs/common';
 import { GithubClient } from '../github/github.client';
-import type { GhRepo, GhTree } from '../github/github.types';
+import {
+  MAX_FILE_BYTES,
+  type GhRepo,
+  type GhTree,
+} from '../github/github.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { CandidatesService } from './candidates.service';
 import { classify, evidenceFiles, type ClassifyResult } from './classify';
@@ -40,7 +44,12 @@ export class RepoInspector {
 
     const paths = tree.entries.map((e) => e.path);
     const files: Record<string, string> = {};
-    for (const p of evidenceFiles(paths).slice(0, EVIDENCE_READ_CAP)) {
+    const sizeOf = new Map(tree.entries.map((e) => [e.path, e.size]));
+    // 증거 JSON은 작아야 정상 — 상한 초과는 읽지 않는다(REVIEW Y9)
+    const evidence = evidenceFiles(paths).filter(
+      (p) => (sizeOf.get(p) ?? 0) <= MAX_FILE_BYTES,
+    );
+    for (const p of evidence.slice(0, EVIDENCE_READ_CAP)) {
       const text = await this.github.getFile(repo.owner, repo.name, ref, p);
       if (text !== null) files[p] = text;
     }

@@ -16,4 +16,14 @@ describe('docCandidates', () => {
     ]);
     expect(docCandidates('HOOK', 'x', e('x/other.md'))).toEqual([]);
   });
+
+  it('REVIEW Y9: 트리 크기가 상한(256KB)을 넘는 문서는 받지 않는다', () => {
+    const tree = [
+      { path: 'README.md', size: 300 * 1024 },
+      { path: 'skills/a/SKILL.md', size: 10 },
+    ];
+    expect(docCandidates('SKILL', 'skills/a', tree)).toEqual([
+      'skills/a/SKILL.md',
+    ]);
+  });
 });

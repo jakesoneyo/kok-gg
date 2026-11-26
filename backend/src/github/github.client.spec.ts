@@ -135,6 +135,38 @@ describe('HttpGithubClient', () => {
     expect(b.client.usage().core).toBe(1);
   });
 
+  it('REVIEW Y9: getFile은 content-length가 상한을 넘으면 본문을 읽지 않고 null', async () => {
+    let read = false;
+    const big = setup(() => {
+      const res = new Response('x', {
+        headers: { 'content-length': String(300 * 1024) },
+      });
+      res.text = () => {
+        read = true;
+        return Promise.resolve('x');
+      };
+      return res;
+    });
+    expect(await big.client.getFile('o', 'r', 'sha', 'a.md')).toBeNull();
+    expect(read).toBe(false);
+  });
+
+  it('REVIEW Y9: content-length 없이 스트림이 상한을 넘어도 null(메모리 상한)', async () => {
+    const chunk = new Uint8Array(100 * 1024).fill(97);
+    const stream = setup(
+      () =>
+        new Response(
+          new ReadableStream({
+            start(c) {
+              for (let i = 0; i < 4; i++) c.enqueue(chunk);
+              c.close();
+            },
+          }),
+        ),
+    );
+    expect(await stream.client.getFile('o', 'r', 'sha', 'a.md')).toBeNull();
+  });
+
   it('REVIEW Y10: getRepo는 세그먼트별로 인코딩하고 점 세그먼트는 호출하지 않는다', async () => {
     const a = setup(() => json({ message: 'nf' }, {}, 404));
     await expect(a.client.getRepo('../..')).resolves.toBeNull();

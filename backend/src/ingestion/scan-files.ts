@@ -1,10 +1,10 @@
 // 보안 검사에 넘길 파일 선택(순수). 엔진이 실제로 쓰는 것만 고른다: 설정 JSON · SKILL.md · bin/ · 스킬·훅·scripts 아래 스크립트.
 // 훅이 `${CLAUDE_PLUGIN_ROOT}/…`로 참조하는 임의 위치의 스크립트는 1차 검사의 MISSING_FILE 노트로 알아내 추가로 가져온다.
-import type { TreeEntry } from '../github/github.types';
+import { MAX_FILE_BYTES, type TreeEntry } from '../github/github.types';
 import { isConfigJson } from '../security/engine';
 
 export const MAX_FILES_PER_ITEM = 200;
-export const MAX_FILE_BYTES = 256 * 1024;
+export { MAX_FILE_BYTES };
 export const MAX_ITEM_BYTES = 2 * 1024 * 1024;
 
 const SCRIPT_EXT = /\.(?:sh|bash|zsh|py|js|ts|mjs|cjs)$/;

@@ -4,6 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 import {
   GithubError,
+  MAX_FILE_BYTES,
   RateLimitPausedError,
   stripNul,
   type GhRepo,
@@ -165,6 +166,34 @@ const nodeSchema = z.object({
     })
     .nullish(),
 });
+
+/**
+ * 응답 본문을 상한 안에서만 읽는다. content-length가 넘으면 본문을 열지 않고, 없거나 거짓이어도 스트림 누적이
+ * 상한을 넘는 순간 취소한다 — GitHub 파일은 최대 100MB라 무방비로 text()하면 배치가 메모리를 다 쓸 수 있다.
+ * @returns 본문(NUL 제거) 또는 상한 초과 시 null
+ */
+async function readCapped(res: Response): Promise<string | null> {
+  const len = Number(res.headers.get('content-length'));
+  if (len > MAX_FILE_BYTES) {
+    await res.body?.cancel();
+    return null;
+  }
+  if (!res.body) return stripNul(await res.text());
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > MAX_FILE_BYTES) {
+      await reader.cancel();
+      return null;
+    }
+    chunks.push(value);
+  }
+  return stripNul(Buffer.concat(chunks).toString('utf8'));
+}
 
 function parse<T>(schema: z.ZodType<T>, raw: unknown, what: string): T {
   const r = schema.safeParse(raw);
@@ -444,6 +473,7 @@ export class HttpGithubClient extends GithubClient {
   }
 
   /**
+   * 파일 내용 조회. 상한(MAX_FILE_BYTES) 초과 파일은 null — 호출 측은 트리 크기로 먼저 걸러 호출 자체를 피한다.
    * raw 우선(core 한도 미차감으로 알려져 있음 — [미검증], 캡처 후 확인), raw가 404 외로 실패하면 contents API로 대체.
    * raw 호스트에는 토큰을 보내지 않는다(공개 저장소만 다루며 PAT를 다른 호스트로 내보낼 이유가 없음).
    */
@@ -460,7 +490,7 @@ export class HttpGithubClient extends GithubClient {
         { signal: AbortSignal.timeout(30_000) },
       );
       if (res.status === 404) return null;
-      if (res.ok) return stripNul(await res.text());
+      if (res.ok) return await readCapped(res);
     } catch {
       /* contents API로 대체 */
     }
@@ -471,7 +501,7 @@ export class HttpGithubClient extends GithubClient {
     );
     if (res.status === 404) return null;
     if (!res.ok) throw new GithubError(res.status, `GH_${res.status}`, path);
-    return stripNul(await res.text());
+    return readCapped(res);
   }
 
   /** 응답 형식은 문서 기준(`{week,total,days[7]}`, 최신 주부터) — 실제 캡처 전까지 [미검증]. */

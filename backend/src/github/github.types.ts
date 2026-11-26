@@ -5,6 +5,9 @@
  * GitHub 원문 문자열에서 NUL(\0)을 제거한다. Postgres text/jsonb는 NUL을 거부하고, 저장소 작성자가 README·JSON에
  * NUL을 넣을 수 있으므로 DB에 쓰기 전 신뢰 경계(GitHub 응답)에서 한 번 걸러야 한 저장소가 배치 전체를 멈추지 못한다.
  */
+/** 파일 1개를 메모리로 읽는 상한. 이보다 큰 파일은 받지 않는다(검사·요약 대상으로 의미 없고 메모리 소진 방지). */
+export const MAX_FILE_BYTES = 256 * 1024;
+
 export const stripNul = (s: string): string => s.replaceAll('\0', '');
 
 export interface GhRepo {
