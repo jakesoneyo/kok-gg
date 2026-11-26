@@ -1,0 +1,36 @@
+# backend 이미지를 GHCR에 올린다. 같은 이미지를 API 서버(Render)와 배치(ingest.yml의 `node dist/cli.js ingest`)가 쓴다.
+# 배포 승인 전에 의도치 않게 올라가지 않도록 push 트리거는 저장소 변수 PUBLISH_IMAGE=true일 때만 동작한다(수동 dispatch는 항상 가능).
+name: Publish backend image
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["backend/**", ".github/workflows/publish-image.yml"]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    if: github.event_name == 'workflow_dispatch' || vars.PUBLISH_IMAGE == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: backend
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/kok-gg-backend:latest
+            ghcr.io/${{ github.repository_owner }}/kok-gg-backend:${{ github.sha }}
+          # 패키지를 저장소에 연결해야 ingest.yml의 GITHUB_TOKEN(packages: read)이 pull 할 수 있다
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

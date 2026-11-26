@@ -1,0 +1,47 @@
+# Render Blueprint (Phase 1, 무료 플랜) — backend + ai 두 Docker 서비스. 편의일 뿐 필수는 아님(ARCHITECTURE 12.1).
+# 시크릿은 `sync: false`라 값이 저장소에 없고, Blueprint 적용 시 대시보드에서 직접 입력한다. 절차는 docs/DEPLOY.md.
+# autoDeployTrigger: off — 푸시마다 자동 배포하지 않는다(배포 승인 게이트 후 수동 배포).
+services:
+  - type: web
+    name: kok-gg-backend
+    runtime: docker
+    plan: free
+    region: singapore # Neon 리전(aws-ap-southeast-1)과 맞춘다
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    autoDeployTrigger: "off"
+    envVars:
+      - { key: NODE_ENV, value: production }
+      - { key: DEMO_ADMIN_READONLY, value: "true" } # 운영 기본: 데모 admin의 관리자 변경 API 403
+      - { key: TRUST_PROXY, value: "1" } # Render 프록시 1홉 → 레이트리밋이 실제 클라이언트 IP를 본다
+      - { key: JWT_SECRET, generateValue: true }
+      - { key: DATABASE_URL, sync: false } # kok_app · Neon 풀러 URL
+      - { key: DIRECT_URL, sync: false } # kok_app · Neon 직결 URL (기동 시 prisma migrate deploy)
+      - { key: CORS_ORIGINS, sync: false } # Vercel 프론트 오리진(쉼표 구분). 비면 기동 실패(fail-fast)
+      - { key: AI_BASE_URL, sync: false } # https://<ai 서비스>.onrender.com
+      - { key: INTERNAL_API_TOKEN, sync: false } # ai·Actions 시크릿과 같은 값
+      # 관리자 콘솔 "수동 실행"용 workflow_dispatch(선택). 비우면 run이 REQUESTED로 남아 다음 정기 실행이 집어 감
+      - { key: GH_DISPATCH_TOKEN, sync: false }
+      - { key: GH_DISPATCH_REPO, value: jakesoneyo/kok-gg }
+      - { key: GH_DISPATCH_WORKFLOW, value: ingest.yml }
+
+  - type: web
+    name: kok-gg-ai
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./ai/Dockerfile
+    dockerContext: ./ai
+    healthCheckPath: /health
+    autoDeployTrigger: "off"
+    envVars:
+      - { key: APP_ENV, value: production } # /docs 비활성
+      - { key: PORT, value: "8000" } # Dockerfile CMD가 8000에 바인딩
+      - { key: AI_DATABASE_URL, sync: false } # kok_ai · postgresql+psycopg://… (Neon 직결 URL 권장)
+      - { key: INTERNAL_API_TOKEN, sync: false }
+      - { key: ANTHROPIC_API_KEY, sync: false }
+      - { key: VOYAGE_API_KEY, sync: false }
+      - { key: DAILY_AI_BUDGET_USD, value: "1.0" }
+      - { key: SUMMARY_MODEL, value: claude-haiku-5-5 } # PLAN C7 평가 결과로 확정 전 잠정값
+      - { key: ANSWER_MODEL, value: claude-haiku-5-5 }
