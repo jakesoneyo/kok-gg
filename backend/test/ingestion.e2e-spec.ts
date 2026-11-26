@@ -357,6 +357,48 @@ describe('수집 파이프라인 통합', () => {
     expect(after.finishedAt).not.toBeNull();
   });
 
+  it('REVIEW Y4: 코드 검색 후보는 축약 응답이라 스타 0·fork 미상 — qualify가 판별 직전에 GraphQL로 갱신한다', async () => {
+    gh.add({
+      owner: 'g',
+      name: 'forked',
+      stars: 9,
+      head: sha('8'),
+      fork: true,
+      files: {},
+    });
+    const seed = (owner: string, name: string) => {
+      const r = gh.repo(`${owner}/${name}`);
+      return app.prisma.repo.create({
+        data: {
+          githubId: BigInt(r.id),
+          nodeId: r.nodeId,
+          owner,
+          name,
+          fullNameLower: `${owner}/${name}`.toLowerCase(),
+          discoveredVia: 'CODE_SEARCH',
+          stars: 0,
+        },
+      });
+    };
+    await seed('a', 'hook-lint');
+    await seed('g', 'forked');
+    await app.pipeline.ingest({ asOf: D1, stages: ['QUALIFY'] });
+    const hook = await app.prisma.repo.findFirstOrThrow({
+      where: { name: 'hook-lint' },
+    });
+    expect(hook.stars).toBe(50);
+    expect(hook.status).toBe('TRACKED');
+    const forked = await app.prisma.repo.findFirstOrThrow({
+      where: { name: 'forked' },
+    });
+    expect(forked).toMatchObject({
+      stars: 9,
+      isFork: true,
+      status: 'IGNORED',
+      ignoredReason: 'fork',
+    });
+  });
+
   it('IT-7: 신규 저장소 공식 기록 실패 + 전일 스냅샷 없음 → gain null · 트렌드 없음 · OFFICIAL_HISTORY_FAILED 1건', async () => {
     gh.add({
       owner: 'e',

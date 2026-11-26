@@ -1,12 +1,13 @@
 // 2단계 qualify: 후보 저장소의 트리를 1회 조회해 Item을 만들고 TRACKED / IGNORED / TOO_LARGE / GONE으로 판정한다.
 // 처리된 후보는 CANDIDATE 집합에서 빠지므로 별도 커서 없이도 재개가 된다(커서는 관측용으로만 기록).
 import { Inject, Injectable } from '@nestjs/common';
+import { GithubClient } from '../../github/github.client';
 import { GithubError } from '../../github/github.types';
 import { PrismaService } from '../../prisma/prisma.service';
 import { INGEST_CONFIG, type IngestConfig } from '../ingest.config';
 import { RepoInspector } from '../repo-inspector.service';
 import type { Stage, StageContext } from '../stage';
-import { errorMessage, isoDay, isPause, toDate } from '../util';
+import { chunk, errorMessage, isoDay, isPause, toDate } from '../util';
 
 const BATCH = 50;
 const RECHECK_DAYS = 30;
@@ -18,6 +19,7 @@ export class QualifyStage implements Stage {
   constructor(
     private readonly prisma: PrismaService,
     private readonly inspector: RepoInspector,
+    private readonly github: GithubClient,
     @Inject(INGEST_CONFIG) private readonly config: IngestConfig,
   ) {}
 
@@ -30,6 +32,8 @@ export class QualifyStage implements Stage {
       UPDATE repo SET status = 'CANDIDATE'
        WHERE status = 'IGNORED' AND ignored_reason = 'NO_EVIDENCE'
          AND qualified_at < ${cutoff} AND pushed_at > qualified_at`;
+
+    await this.refreshCodeSearchCandidates();
 
     let tracked = await this.prisma.repo.count({
       where: { status: 'TRACKED' },
@@ -118,6 +122,44 @@ export class QualifyStage implements Stage {
         lastRepoId = repo.id;
       }
       await ctx.commit({ lastRepoId, day: isoDay(new Date()) });
+    }
+  }
+
+  /**
+   * 코드 검색 후보는 축약 저장소 객체라 스타·fork·archived가 기본값(0/false)으로 저장된다(upsert는 기존 행을
+   * 갱신하지 않음). 스타순 선별(MAX_TRACKED_REPOS)과 fork 제외가 맞으려면 판별 직전에 GraphQL(100개/호출)로 채운다.
+   * 삭제된 저장소(null)는 건드리지 않는다 — 트리 조회의 404가 GONE으로 처리한다.
+   */
+  private async refreshCodeSearchCandidates(): Promise<void> {
+    const rows = await this.prisma.repo.findMany({
+      where: { status: 'CANDIDATE', discoveredVia: 'CODE_SEARCH' },
+      select: { id: true, nodeId: true },
+      orderBy: { id: 'asc' },
+    });
+    for (const group of chunk(rows, 100)) {
+      const snaps = await this.github.snapshots(group.map((r) => r.nodeId));
+      for (const [i, snap] of snaps.entries()) {
+        if (!snap) continue;
+        await this.prisma.repo.update({
+          where: { id: group[i].id },
+          data: {
+            stars: snap.stars,
+            description: snap.description,
+            defaultBranch: snap.defaultBranch,
+            pushedAt: snap.pushedAt ? new Date(snap.pushedAt) : null,
+            ghCreatedAt: snap.createdAt ? new Date(snap.createdAt) : null,
+            archived: snap.archived,
+            isFork: snap.fork,
+            topics: snap.topics,
+            ...(snap.fork || snap.archived
+              ? {
+                  status: 'IGNORED' as const,
+                  ignoredReason: snap.fork ? 'fork' : 'archived',
+                }
+              : {}),
+          },
+        });
+      }
     }
   }
 }
