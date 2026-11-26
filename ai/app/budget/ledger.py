@@ -98,7 +98,7 @@ class Ledger:
         item_id: int | None = None,
     ) -> None:
         actual = cost_micros(self.settings, model, input_tokens, output_tokens)
-        # 실제가 추정을 넘어도 spent는 기록하되 reserved는 est만큼만 해제한다(CHECK가 초과를 막는다).
+        # 실제가 추정을 넘어도 spent는 cap까지만 올린다(LEAST) — CHECK 위반 대신 cap에서 멈춘다.
         with self.engine.begin() as conn:
             conn.execute(
                 text(
