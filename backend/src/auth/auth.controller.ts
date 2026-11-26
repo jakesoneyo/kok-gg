@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
+import { RateBucket } from '../common/throttle/throttle.config';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.schema';
 import { RefreshDto } from './dto/refresh.schema';
@@ -16,6 +17,7 @@ export class AuthController {
 
   @Public()
   @Post('register')
+  @RateBucket('auth')
   @ApiOperation({ summary: '회원가입 (실이메일만 허용)' })
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
@@ -23,6 +25,7 @@ export class AuthController {
 
   @Public()
   @Post('login')
+  @RateBucket('auth')
   @HttpCode(200)
   @ApiOperation({ summary: "로그인 (email==='admin' 리터럴만 형식 검증 우회)" })
   login(@Body() dto: LoginDto) {

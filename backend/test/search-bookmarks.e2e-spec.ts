@@ -210,6 +210,42 @@ describe('search · bookmarks', () => {
       }
     });
 
+    it('끝 슬래시·대소문자로 이름 있는 한도를 우회할 수 없다 (B3)', async () => {
+      const fresh = await createTestApp();
+      try {
+        handler = () => [
+          200,
+          { query: 'x', degraded: false, indexVersion: 1, items: [] },
+        ];
+        const forms = [
+          '/api/search',
+          '/api/search/',
+          '/API/Search',
+          '/API/SEARCH/',
+        ];
+        for (let i = 0; i < 20; i++) {
+          await request(fresh.http())
+            .get(`${forms[i % forms.length]}?q=q${i}`)
+            .expect(200);
+        }
+        await request(fresh.http()).get('/api/search/?q=over').expect(429);
+        await request(fresh.http()).get('/API/SEARCH?q=over').expect(429);
+
+        for (let i = 0; i < 10; i++) {
+          await request(fresh.http())
+            .post(i % 2 ? '/api/auth/login/' : '/API/Auth/Login')
+            .send({ email: 'nobody@example.com', password: 'x' })
+            .expect(401);
+        }
+        await request(fresh.http())
+          .post('/api/auth/login/')
+          .send({ email: 'nobody@example.com', password: 'x' })
+          .expect(429);
+      } finally {
+        await fresh.app.close();
+      }
+    });
+
     it('answer 5/분, 로그인 10/분은 각자 따로 센다', async () => {
       const fresh = await createTestApp();
       try {

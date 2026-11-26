@@ -2,6 +2,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PublicCacheable } from '../common/cache/public-cacheable.decorator';
+import { RateBucket } from '../common/throttle/throttle.config';
 import { Public } from '../common/decorators/public.decorator';
 import { AnswerQueryDto, SearchQueryDto } from './dto/search.schema';
 import { SearchService } from './search.service';
@@ -13,6 +14,7 @@ export class SearchController {
   constructor(private readonly search: SearchService) {}
 
   @Get()
+  @RateBucket('search')
   @PublicCacheable('search')
   @ApiOperation({
     summary: '자연어 검색(하이브리드, FastAPI 프록시) — 20/분/IP',
@@ -22,6 +24,7 @@ export class SearchController {
   }
 
   @Get('answer')
+  @RateBucket('answer')
   @PublicCacheable('search')
   @ApiOperation({ summary: '검색 결과 기반 근거 인용 답변 — 5/분/IP' })
   answer(@Query() q: AnswerQueryDto) {
