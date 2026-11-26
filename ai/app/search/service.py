@@ -167,7 +167,7 @@ class SearchService:
         return result
 
     def _embed_and_search(self, qn: str, kind, level) -> list[int]:
-        est = estimate_micros(self.s, self.s.embed_model, len(qn), 0)
+        est = estimate_micros(self.s, self.s.embed_model, qn, 0)
         with self.ledger.reserved("SEARCH", est) as r:
             vecs, tokens = self.voyage.embed([qn], "query", self.s.embed_model)
             self.ledger.settle(r, provider="voyage", model=self.s.embed_model,
@@ -178,7 +178,7 @@ class SearchService:
         docs = self._docs([i for i, _ in fused])
         ids = [i for i, _ in fused if i in docs]
         texts = [_rerank_text(docs[i]) for i in ids]
-        est = estimate_micros(self.s, self.s.rerank_model, len(qn) + sum(map(len, texts)), 0)
+        est = estimate_micros(self.s, self.s.rerank_model, qn + "".join(texts), 0)
         with self.ledger.reserved("SEARCH", est) as r:
             ranked, tokens = self.voyage.rerank(qn, texts, limit, self.s.rerank_model)
             self.ledger.settle(r, provider="voyage", model=self.s.rerank_model,
@@ -199,9 +199,7 @@ class SearchService:
 
         context = "\n".join(f"[id={i}] {d['name']}: {d['summary_ko']}" for i, d in docs.items())
         user = f"<context>\n{context}\n</context>\n질문: {qn}"
-        est = estimate_micros(
-            self.s, self.s.answer_model, len(ANSWER_SYSTEM) + len(user), ANSWER_MAX_TOKENS
-        )
+        est = estimate_micros(self.s, self.s.answer_model, ANSWER_SYSTEM + user, ANSWER_MAX_TOKENS)
         try:
             with self.ledger.reserved("ANSWER", est) as r:
                 res = self.llm.parse(model=self.s.answer_model, system=ANSWER_SYSTEM, user=user,

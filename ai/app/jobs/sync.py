@@ -163,7 +163,7 @@ def _process(engine, llm, voyage, ledger, settings, d, res: SyncResult) -> None:
         ).scalar()
     vec = None
     if have != sha:
-        est = estimate_micros(settings, settings.embed_model, len(text_in), 0)
+        est = estimate_micros(settings, settings.embed_model, text_in, 0)
         with ledger.reserved("SUMMARY", est) as rsv:
             vecs, tokens = voyage.embed([text_in], "document", settings.embed_model)
             ledger.settle(

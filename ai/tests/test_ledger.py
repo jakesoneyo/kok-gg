@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 import pytest
 from sqlalchemy import text
 
-from app.budget.ledger import BudgetExceeded, Ledger, pool_caps
+from app.budget.ledger import BudgetExceeded, Ledger, cost_micros, pool_caps
 from app.config import Settings
 
 
@@ -69,3 +69,14 @@ def test_settle_moves_reserved_to_spent_and_logs(engine):
             1500,
             7,
         )
+
+
+def test_estimate_counts_korean_one_token_per_char():
+    # Y7: 한국어는 문자당 ≥1토큰이라 문자수/3으로 추정하면 과소 → 비ASCII는 문자당 1토큰
+    from app.budget.ledger import estimate_micros
+
+    s = Settings()
+    model = s.summary_model
+    ko = estimate_micros(s, model, "한" * 300, 0)
+    assert ko >= cost_micros(s, model, 300, 0)
+    assert estimate_micros(s, model, "a" * 300, 0) == cost_micros(s, model, 100, 0)

@@ -5,6 +5,7 @@
 각 연산은 자체 트랜잭션으로 즉시 커밋한다(예약이 다른 요청에 바로 보여야 하므로).
 """
 
+import logging
 import math
 from collections.abc import Callable
 from contextlib import contextmanager
@@ -15,6 +16,8 @@ from typing import Literal
 from sqlalchemy import Engine, text
 
 from app.config import Settings
+
+log = logging.getLogger(__name__)
 
 Pool = Literal["SUMMARY", "SEARCH", "ANSWER"]
 POOLS: tuple[Pool, ...] = ("SUMMARY", "SEARCH", "ANSWER")
@@ -42,11 +45,14 @@ def cost_micros(settings: Settings, model: str, input_tokens: int, output_tokens
     return math.ceil(input_tokens * p_in + output_tokens * p_out)
 
 
-def estimate_micros(
-    settings: Settings, model: str, input_chars: int, max_output_tokens: int
-) -> int:
-    """입력 문자수/3을 토큰으로 보는 과대 추정 — 상한을 넘을 수 없는 방향으로만 오차."""
-    return cost_micros(settings, model, math.ceil(input_chars / 3), max_output_tokens)
+def estimate_micros(settings: Settings, model: str, input_text: str, max_output_tokens: int) -> int:
+    """예약용 과대 추정 — 상한을 넘을 수 없는 방향으로만 오차.
+
+    ASCII는 3자≈1토큰, 한국어·CJK·이모지 등 비ASCII는 문자당 1토큰(문자수/3은 과소 추정).
+    """
+    non_ascii = sum(ord(c) > 127 for c in input_text)
+    tokens = math.ceil((len(input_text) - non_ascii) / 3) + non_ascii
+    return cost_micros(settings, model, tokens, max_output_tokens)
 
 
 def pool_caps(settings: Settings) -> dict[Pool, int]:
@@ -99,6 +105,9 @@ class Ledger:
     ) -> None:
         actual = cost_micros(self.settings, model, input_tokens, output_tokens)
         # 실제가 추정을 넘어도 spent는 cap까지만 올린다(LEAST) — CHECK 위반 대신 cap에서 멈춘다.
+        if actual > r.est_micros:
+            # 원장은 cap에서 멈추지만 실제 지출은 초과일 수 있다 — 추정 보정 신호로 남긴다.
+            log.warning("예약 초과 지출 pool=%s est=%d actual=%d", r.pool, r.est_micros, actual)
         with self.engine.begin() as conn:
             conn.execute(
                 text(

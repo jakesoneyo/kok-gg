@@ -47,7 +47,7 @@ def summarize(
     if body_length(cleaned) < MIN_BODY_CHARS:
         return SummaryResult("INSUFFICIENT", model)
     user = build_user(name, cleaned)
-    est = estimate_micros(settings, model, len(SYSTEM) + len(user), MAX_OUTPUT_TOKENS)
+    est = estimate_micros(settings, model, SYSTEM + user, MAX_OUTPUT_TOKENS)
     try:
         with ledger.reserved("SUMMARY", est) as r:  # 예외 시 자동 해제(호출 실패는 과금 없음)
             res = llm.parse(
