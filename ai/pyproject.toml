@@ -23,8 +23,8 @@ dev = [
   "testcontainers[postgres]~=4.15",
 ]
 
-[tool.setuptools]
-packages = ["app"]
+[tool.setuptools.packages.find]
+include = ["app*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

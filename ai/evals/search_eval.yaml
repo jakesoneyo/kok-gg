@@ -1,0 +1,23 @@
+# 검색 평가 세트 뼈대 — 정답 라벨(relevant)은 C6에서 실데이터 색인 후 채운다.
+# 지표 후보: recall@10, MRR. kind는 선택 필터.
+queries:
+  - { q: "PR 올리기 전에 lint 돌려주는 hook", kind: HOOK, relevant: [] }
+  - { q: "커밋 메시지 자동으로 써주는 스킬", kind: SKILL, relevant: [] }
+  - { q: "코드 리뷰 자동화 플러그인", kind: PLUGIN, relevant: [] }
+  - { q: "테스트 실패하면 알려주는 훅", kind: HOOK, relevant: [] }
+  - { q: "데이터베이스 스키마 마이그레이션 도와주는 스킬", kind: SKILL, relevant: [] }
+  - { q: "슬랙으로 알림 보내는 플러그인", kind: PLUGIN, relevant: [] }
+  - { q: "Python 타입 체크 자동 실행", relevant: [] }
+  - { q: "보안 취약점 점검", relevant: [] }
+  - { q: "문서 자동 생성", relevant: [] }
+  - { q: "한국어 맞춤법 검사", relevant: [] }
+  - { q: "도커 컨테이너 배포 스킬", kind: SKILL, relevant: [] }
+  - { q: "GitHub 이슈를 정리해주는 플러그인", kind: PLUGIN, relevant: [] }
+  - { q: "파일 저장할 때 포맷터 실행하는 hook", kind: HOOK, relevant: [] }
+  - { q: "MCP 서버를 묶어서 설치", kind: PLUGIN, relevant: [] }
+  - { q: "리팩터링 안전하게 하는 방법", relevant: [] }
+  - { q: "API 문서를 OpenAPI로 만들어주는 도구", relevant: [] }
+  - { q: "브라우저 자동화 테스트", relevant: [] }
+  - { q: "위험한 명령 실행을 막는 훅", kind: HOOK, relevant: [] }
+  - { q: "SQL 쿼리 최적화 조언", relevant: [] }
+  - { q: "프론트엔드 컴포넌트 생성 스킬", kind: SKILL, relevant: [] }
