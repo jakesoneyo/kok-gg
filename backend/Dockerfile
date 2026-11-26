@@ -20,10 +20,12 @@ RUN npm prune --omit=dev
 FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/prisma.config.ts ./
+COPY --chown=node:node --from=builder /app/node_modules ./node_modules
+COPY --chown=node:node --from=builder /app/dist ./dist
+COPY --chown=node:node --from=builder /app/package.json ./
+COPY --chown=node:node --from=builder /app/prisma ./prisma
+COPY --chown=node:node --from=builder /app/prisma.config.ts ./
+# root 권한 불필요 — 컨테이너 탈출·파일 변조 피해 범위를 줄인다. node 사용자는 베이스 이미지에 내장.
+USER node
 EXPOSE 3000
 CMD ["sh","-c","npx prisma migrate deploy && node dist/main.js"]
