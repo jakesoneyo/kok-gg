@@ -1,6 +1,6 @@
 // IT-12: 쓰기 소유권(kok_app=public, kok_ai=ai)이 코드가 아니라 DB 권한으로 강제됨을 증명한다.
 import { Client } from 'pg';
-import { KokDb, startKokDb } from './support/kok-db';
+import type { KokDb } from './support/kok-db';
 
 jest.setTimeout(180_000);
 
@@ -10,7 +10,7 @@ describe('IT-12 DB 권한 경계', () => {
   let ai: Client;
 
   beforeAll(async () => {
-    db = await startKokDb();
+    db = globalThis.__KOK_DB__ as KokDb; // global-setup이 띄운 공유 컨테이너
     app = await db.client('kok_app');
     ai = await db.client('kok_ai');
   });
@@ -18,7 +18,6 @@ describe('IT-12 DB 권한 경계', () => {
   afterAll(async () => {
     await app?.end();
     await ai?.end();
-    await db?.stop();
   });
 
   it('kok_app은 ai 테이블에 쓸 수 없다', async () => {
@@ -36,10 +35,10 @@ describe('IT-12 DB 권한 경계', () => {
     );
     await expect(
       app.query('SELECT * FROM ai.v_item_summary_public'),
-    ).resolves.toMatchObject({ rowCount: 0 });
+    ).resolves.toHaveProperty('rows'); // 공유 DB라 비어 있다고 가정하지 않는다;
     await expect(
       app.query('SELECT * FROM ai.v_ai_usage_daily'),
-    ).resolves.toMatchObject({ rowCount: 0 });
+    ).resolves.toHaveProperty('rows'); // 공유 DB라 비어 있다고 가정하지 않는다;
   });
 
   it('kok_ai는 public.bookmark를 읽을 수 없다', async () => {

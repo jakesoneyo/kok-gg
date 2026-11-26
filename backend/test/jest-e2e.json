@@ -9,5 +9,7 @@
   },
   "transformIgnorePatterns": [
     "/node_modules/(?!(@nestjs/jwt|@nestjs/config|@nestjs/passport)/)"
-  ]
+  ],
+  "globalSetup": "<rootDir>/support/global-setup.ts",
+  "globalTeardown": "<rootDir>/support/global-teardown.ts"
 }
