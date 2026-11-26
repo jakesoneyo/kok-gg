@@ -11,6 +11,9 @@ export interface IngestConfig {
 
 export const INGEST_CONFIG = Symbol('INGEST_CONFIG');
 
+/** Actions 타임아웃(120분)보다 넉넉한 값. 이보다 오래 RUNNING이면 배치는 이미 죽은 것으로 본다. */
+export const STALE_RUN_MS = 3 * 3_600_000;
+
 export const DEFAULT_TOPICS = [
   'claude-code',
   'claude-code-plugin',

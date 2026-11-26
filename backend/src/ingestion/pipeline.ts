@@ -54,6 +54,12 @@ export class IngestionPipeline {
         this.logger.warn('다른 수집이 진행 중 — 종료');
         return { skipped: true };
       }
+      // 락을 쥔 건 이 프로세스뿐이므로 RUNNING으로 남은 run은 강제 종료된 배치의 흔적이다. 정리하지 않으면
+      // 관리자 수동 요청이 영원히 409가 된다(REVIEW Y5). openRun 전에 해야 이어받을 run이 RUNNING→RUNNING으로 보존된다.
+      await this.prisma.ingestionRun.updateMany({
+        where: { status: 'RUNNING' },
+        data: { status: 'FAILED', finishedAt: new Date() },
+      });
       const run = await this.openRun(opts);
       const status = await this.execute(run, opts.stages ?? run.stages);
       return { skipped: false, runId: run.id, status };

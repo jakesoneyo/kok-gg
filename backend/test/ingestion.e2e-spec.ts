@@ -338,6 +338,25 @@ describe('수집 파이프라인 통합', () => {
     ).toBe('TRACKED');
   });
 
+  it('REVIEW Y5: 강제 종료로 RUNNING에 남은 이전 run은 락을 잡은 다음 실행이 FAILED로 정리한다', async () => {
+    const stale = await app.prisma.ingestionRun.create({
+      data: {
+        trigger: 'CRON',
+        asOf: day('2026-11-20'),
+        cronKey: '2026-11-20',
+        status: 'RUNNING',
+        startedAt: new Date(Date.now() - 6 * 3_600_000),
+      },
+    });
+    const out = await app.pipeline.ingest({ asOf: D1 });
+    expect(out).toMatchObject({ skipped: false });
+    const after = await app.prisma.ingestionRun.findUniqueOrThrow({
+      where: { id: stale.id },
+    });
+    expect(after.status).toBe('FAILED');
+    expect(after.finishedAt).not.toBeNull();
+  });
+
   it('IT-7: 신규 저장소 공식 기록 실패 + 전일 스냅샷 없음 → gain null · 트렌드 없음 · OFFICIAL_HISTORY_FAILED 1건', async () => {
     gh.add({
       owner: 'e',

@@ -4,6 +4,7 @@ import { IngestionRun, StageName } from '@prisma/client';
 import { z } from 'zod';
 import { decodeCursor, encodeCursor } from '../common/cursor/cursor.codec';
 import { DomainException } from '../common/errors/domain-exception';
+import { STALE_RUN_MS } from '../ingestion/ingest.config';
 import { PrismaService } from '../prisma/prisma.service';
 
 const toRunBrief = (run: IngestionRun) => ({
@@ -30,8 +31,17 @@ export class IngestionAdminService {
    * 실제 동시 실행을 막으므로 허용. 엄격히 하려면 활성 여부를 유니크 키로 승격.
    */
   async requestRun(userId: number, stages: StageName[]) {
+    // 강제 종료된 배치가 RUNNING으로 남기면 영구 409가 되므로 오래된 RUNNING은 활성에서 뺀다(다음 배치가 FAILED로 정리)
     const active = await this.prisma.ingestionRun.findFirst({
-      where: { status: { in: ['REQUESTED', 'RUNNING'] } },
+      where: {
+        OR: [
+          { status: 'REQUESTED' },
+          {
+            status: 'RUNNING',
+            startedAt: { gt: new Date(Date.now() - STALE_RUN_MS) },
+          },
+        ],
+      },
       select: { id: true },
     });
     if (active) {
