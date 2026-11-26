@@ -8,6 +8,8 @@ import { AiStatusService } from './ai-status.service';
 import {
   aiAnswerResponseSchema,
   aiSearchResponseSchema,
+  type AnswerQuery,
+  type SearchQuery,
 } from './dto/search.schema';
 
 const AI_TIMEOUT_MS = 8_000;
@@ -21,12 +23,7 @@ export class SearchService {
     private readonly aiStatus: AiStatusService,
   ) {}
 
-  async search(body: {
-    q: string;
-    kind?: string;
-    level?: string;
-    limit: number;
-  }) {
+  async search(body: SearchQuery) {
     const res = await this.callAi(
       '/internal/search',
       body,
@@ -49,7 +46,7 @@ export class SearchService {
     };
   }
 
-  answer(body: { q: string; kind?: string; level?: string }) {
+  answer(body: AnswerQuery) {
     return this.callAi('/internal/search/answer', body, aiAnswerResponseSchema);
   }
 

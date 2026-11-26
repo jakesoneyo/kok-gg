@@ -16,6 +16,7 @@ export const searchQuerySchema = z
     limit: z.coerce.number().int().min(1).max(10).default(10),
   })
   .strict();
+export type SearchQuery = z.infer<typeof searchQuerySchema>;
 export class SearchQueryDto extends createZodDto(searchQuerySchema) {}
 
 export const answerQuerySchema = z
@@ -25,6 +26,7 @@ export const answerQuerySchema = z
     level: riskLevelSchema.optional(),
   })
   .strict();
+export type AnswerQuery = z.infer<typeof answerQuerySchema>;
 export class AnswerQueryDto extends createZodDto(answerQuerySchema) {}
 
 /** FastAPI /internal/search 응답. */

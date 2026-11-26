@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { decodeCursor, encodeCursor } from '../common/cursor/cursor.codec';
 import { DomainException } from '../common/errors/domain-exception';
 import { PrismaService } from '../prisma/prisma.service';
-import type { ItemSort } from './dto/catalog.schema';
+import type { ItemSort, ItemsQuery, TrendingQuery } from './dto/catalog.schema';
 import {
   ITEM_CARD_SELECT,
   toItemCard,
@@ -48,13 +48,7 @@ export class CatalogService {
    * 카탈로그 목록. 정렬 키가 item에 비정규화돼 있어 `(status, [kind,] key, id)` 인덱스만으로
    * keyset 페이지를 뽑는다. `take = limit + 1`로 다음 페이지 유무를 COUNT 없이 판단한다.
    */
-  async listItems(q: {
-    sort: ItemSort;
-    kind?: 'PLUGIN' | 'SKILL' | 'HOOK';
-    level?: 'SAFE' | 'CAUTION' | 'DANGER';
-    limit: number;
-    cursor?: string;
-  }) {
+  async listItems(q: ItemsQuery) {
     const { sort } = q;
     const col = SORT_COLUMN[sort];
     const isDate = sort === 'updated' || sort === 'new';
@@ -106,12 +100,7 @@ export class CatalogService {
    * 저장소 순위표. 쿼리 3회 고정: ① 기준일 ② trend_score + repo ③ 해당 저장소들의 Item(ANY).
    * 루프 안 개별 조회 없이 Map으로 조립한다(N+1 금지).
    */
-  async trending(q: {
-    window: TrendWindow;
-    kind?: 'PLUGIN' | 'SKILL' | 'HOOK';
-    limit: number;
-    cursor?: string;
-  }) {
+  async trending(q: TrendingQuery) {
     const asOf = await this.latestAsOf(q.window);
     if (!asOf) {
       return { asOf: null, window: q.window, items: [], nextCursor: null };
