@@ -14,7 +14,7 @@ function setup(responses: (() => Response | Promise<Response>)[]) {
   const c = new AiSyncClient();
   const sleeps: number[] = [];
   let n = 0;
-  c.fetchImpl = (() => Promise.resolve(responses[n++]())) as typeof fetch;
+  c.fetchImpl = () => Promise.resolve(responses[n++]());
   c.sleep = (ms) => {
     sleeps.push(ms);
     return Promise.resolve();

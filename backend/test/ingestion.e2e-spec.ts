@@ -318,11 +318,12 @@ describe('수집 파이프라인 통합', () => {
         topics: ['claude-code'],
         files: { 'skills/x/SKILL.md': SKILL() },
       });
-    const real = gh.getTree.bind(gh);
-    gh.getTree = async (owner, repo) => {
-      if (repo === 'hook-lint') throw new Error('invalid byte sequence');
-      return real(owner, repo);
-    };
+    // 트리 조회 시 GithubError가 아닌 예외(예: DB 거부)를 내는 저장소
+    Object.defineProperty(gh.repo('a/hook-lint'), 'files', {
+      get: () => {
+        throw new Error('invalid byte sequence');
+      },
+    });
     const out = await app.pipeline.ingest({ asOf: D1 });
     if (out.skipped) throw new Error('skipped');
     const stage = (name: string) => stageRow(out.runId, name);

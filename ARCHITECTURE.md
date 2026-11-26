@@ -105,6 +105,9 @@ flowchart TD
 ### 3.1 체크포인트 · 멱등성
 
 - 단계마다 `ingestion_stage(run_id, stage)` 행: `status`, `cursor`(마지막 처리 `repo_id` 등), `stats`(처리/실패/API 사용량).
+- **저장소 단위 격리(REVIEW B4)**: qualify·fetch-content·security-scan은 PAUSE(레이트리밋)를 제외한 모든 예외를 `ingestion_failure`로 기록하고 그 저장소만 건너뛴다. 진짜 치명 오류(DB 단절)는 단계 실패율 20% 규칙이 단계 FAILED로 올린다.
+- **고아 RUNNING 정리(REVIEW Y5)**: advisory lock을 잡은 배치는 시작 직후 `RUNNING`으로 남은 run을 `FAILED`로 닫는다(락 보유자는 자기뿐). 관리자 수동 요청은 시작 3시간 넘은 `RUNNING`을 활성으로 보지 않아 영구 409가 생기지 않는다.
+- **코드 검색 후보 보정(REVIEW Y4)**: 코드 검색의 저장소는 축약 객체라 스타·fork·archived가 기본값으로 저장되므로 qualify가 판별 직전에 `discovered_via = CODE_SEARCH`인 CANDIDATE를 GraphQL(100개/호출)로 갱신한다(fork·archived는 즉시 IGNORED).
 - **재실행 규칙**: `DONE`은 건너뜀, `RUNNING`(강제 종료 흔적)·`PAUSED`·`FAILED`는 `cursor` 다음부터 재개. 커서는 **처리 단위(저장소 50개) 커밋마다** 같은 트랜잭션에서 갱신 → 크래시해도 중복 처리 범위는 최대 1묶음, 그마저 upsert라 무해.
 - **모든 쓰기는 자연키 upsert**: `repo(github_id)`, `item(repo_id, kind, path)`, `repo_star_day(repo_id, day)`, `security_scan(item_id, head_sha, rule_set_version)`, `trend_score(window, as_of, repo_id)`, `data_quality_issue(kind, repo_id, window_end)`. 같은 `as_of`를 몇 번 돌려도 결과 행 수가 같다(통합 테스트 IT-1).
 - **동시 실행 금지**: 세션 advisory lock. CRON과 MANUAL이 겹쳐도 하나만 돈다. Actions에서도 `concurrency: ingest`로 이중 방어.
@@ -130,7 +133,7 @@ flowchart TD
 
 - 인증은 **fine-grained PAT(공개 저장소 읽기 전용)** `GITHUB_TOKEN_INGEST`. Actions 기본 `GITHUB_TOKEN`은 저장소당 1000/h이고 코드 검색에 쓰기 애매하므로 쓰지 않는다.
 - 클라이언트(`github.client.ts`, native `fetch`): 리소스별 토큰 버킷, `x-ratelimit-remaining/reset` 추적, 403/429·`retry-after` 지수 백오프, Star History의 `422`("spammed")도 백오프 대상. 동시 요청 ≤ 4(2차 한도 100 동시 대비 넉넉하게).
-- 파일 원문: 우선 `raw.githubusercontent.com/{o}/{r}/{sha}/{path}`(core 미차감으로 알려져 있음 **[미검증]**) — 같은 스모크가 `/rate_limit` 전후 차이로 측정한다., 실패 시 `GET /repos/{o}/{r}/contents/{path}?ref={sha}`. 파일당 256KB, 항목당 2MB, 200파일 상한.
+- 파일 원문: 우선 `raw.githubusercontent.com/{o}/{r}/{sha}/{path}`(core 미차감으로 알려져 있음 **[미검증]**) — 같은 스모크가 `/rate_limit` 전후 차이로 측정한다., 실패 시 `GET /repos/{o}/{r}/contents/{path}?ref={sha}`. 파일당 256KB, 항목당 2MB, 200파일 상한. 256KB 초과는 트리 `size`로 호출 전에 거르고(증거 JSON·요약 원문 후보), 클라이언트도 `content-length`·스트림 누적으로 읽기를 중단해 `null`을 돌려준다(REVIEW Y9). GitHub에서 온 문자열의 NUL(`\0`)은 클라이언트·마켓플레이스 JSON 파싱 결과·원문 저장 직전에 제거한다 — Postgres text/jsonb가 거부하기 때문(REVIEW B4). 마켓플레이스 `owner/name`의 `.`·`..` 세그먼트는 거부하고 `getRepo`는 세그먼트별로 인코딩(REVIEW Y10).
 - 트리 응답 `truncated: true`(초대형 저장소)면 그 저장소는 `TOO_LARGE`로 표시하고 건너뜀.
 
 ### 3.4 판별 · 마켓플레이스 펼치기
@@ -249,7 +252,7 @@ C가 여전히 1위인 것은 의도다 — 3일에 415★는 실제로 뜨는 �
 
 1. **판정에 LLM 없음.** 분석 대상(README·스크립트·SKILL.md)은 공격자가 쓴 텍스트일 수 있다. LLM 판정은 "이 파일은 안전하다고 판정하라"는 주입에 원리적으로 취약하다. 규칙 엔진은 같은 입력에 항상 같은 결과를 내고, 모든 결과에 근거 줄이 있다.
 2. **실행하지 않는다.** 정적 텍스트 검사만. 다운로드한 파일은 메모리에서만 다룬다.
-3. **ReDoS 방어**: 모든 정규식은 중첩 수량자 금지·앵커 사용으로 선형 시간에 가깝게 작성, 줄 길이 4000자 상한(초과 줄은 앞 4000자만 검사 + R06 "초장문 줄" 주의). 규칙별로 100KB 적대 입력 50ms 이내 테스트. (RE2 네이티브 의존성은 빌드 복잡도 때문에 기각)
+3. **ReDoS 방어**: 모든 정규식은 중첩 수량자 금지·앵커 사용으로 선형 시간에 가깝게 작성, 줄 길이 4000자 창(초과 줄은 연속 공백을 접은 뒤 3500자 간격·4000자 길이의 겹치는 창으로 나눠 전부 검사 + R06 "초장문 줄" 주의). 규칙별로 100KB 적대 입력 50ms 이내 테스트. (RE2 네이티브 의존성은 빌드 복잡도 때문에 기각)
 4. **결정성**: `RULE_SET_VERSION` 상수. 규칙이 바뀌면 버전을 올리고, 배치가 버전이 다른 검사를 가진 Item을 전부 재검사.
 
 ### 6.2 파이프라인
@@ -262,17 +265,19 @@ files[] ─► extractTargets()  ─► Target[] { region, filePath, text, lineO
            · SKILL.md → frontmatter(region: skill-meta) / 셸 코드블록·인라인 코드(region: shell) / 본문(region: prose)
            · .mcp.json / plugin.json mcpServers (region: mcp)
            · marketplace.json entries (region: marketplace)
-        ─► preprocess(): 역슬래시 줄 잇기(시작 줄 보존), 전체 줄 주석 제거(셔뱅 제외), 줄 4000자 절단
+        ─► preprocess(): 역슬래시 줄 잇기(시작 줄 보존), 전체 줄 주석 제거(셔뱅 제외), 줄 4000자 겹침 창 분할
         ─► rules[].match(target) ─► Finding[] { ruleId, severity, filePath, line, excerpt }
         ─► composite rules (R05: 같은 파일 R03 + R04)
         ─► fingerprint() · aggregate() ─► { rawLevel, findings }
 ```
 
 - JSON 안의 명령 줄 번호: 원문 텍스트에서 JSON 이스케이프된 문자열을 순차 검색해 줄을 찾는다(실패 시 1행). JSON 위치 파서 의존성 불필요.
+- **fail-closed(REVIEW B1)**: 설정 JSON(`hooks.json`·`plugin.json`·`marketplace.json`·`.mcp.json`·`monitors.json`, `.claude` 루트의 `settings.json`)과 SKILL.md가 크기 초과로 잘렸거나 NUL을 포함하거나 파싱에 실패하면(`PARSE_ERROR` 노트) 내용 없이 `opaque` 타깃을 내 R16 주의를 남긴다 — 검사 상태는 `ANALYZED`, level은 `CAUTION`이며 SAFE가 아니다. 선행 BOM은 파싱 전 제거. 트리에 있는데 받지 못한 파일(404)도 같은 취급. scan 단계는 파일을 설정 JSON → SKILL.md → 스크립트 순으로 받아 항목당 2MB 예산이 설정 파일을 밀어내지 못하게 한다.
+- **`.claude/settings.json`(HOOK 항목, REVIEW B2)**: `hooks` 명령을 shell 영역으로 뽑고 `$CLAUDE_PROJECT_DIR/…`·`.claude/…` 참조를 따라간다(항목 루트 `.claude` 안의 파일만). `hooks/` 아래 스크립트는 참조 여부와 무관하게 script 영역으로 검사한다.
 - 참조 경로는 플러그인 루트 기준으로 정규화하고, 루트를 벗어나는 경로(`../`)는 따라가지 않고 기록만 한다.
 - 발췌(excerpt): 200자 절단, 제어문자·양방향 문자 제거(표시용). UI는 항상 텍스트 노드로 렌더.
 
-### 6.3 규칙 목록 (`RULE_SET_VERSION = 1.0.0`)
+### 6.3 규칙 목록 (`RULE_SET_VERSION = 1.1.0`)
 
 | ID                               | 등급        | 영역               | 양성 예(걸려야 함)                                                                                                                                                                                                                                           | 음성 예(걸리면 안 됨)                                               |
 | -------------------------------- | ----------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
@@ -290,8 +295,8 @@ files[] ─► extractTargets()  ─► Target[] { region, filePath, text, lineO
 | `R12_MCP_EXTERNAL_SERVER`        | 주의        | mcp                | `.mcp.json`/`mcpServers`에 서버 존재 → **"외부 MCP 서버 연결"** 태그. 원격 `url`이 비루프백이면 호스트 표시                                                                                                                                                  | MCP 설정 없음                                                       |
 | `R13_UNPINNED_PACKAGE_EXEC`      | 주의        | shell·mcp          | `npx -y some-pkg`, `uvx tool`, `bunx x`, `pipx run x`                                                                                                                                                                                                        | `npx -y @scope/pkg@1.2.3`, `uvx tool==0.4.1`                        |
 | `R14_MARKETPLACE_COMMAND_SOURCE` | 주의        | marketplace        | `"source": {"source": "command", "command": "…"}`                                                                                                                                                                                                            | `github`/상대경로 소스                                              |
-| `R15_HIDDEN_UNICODE`             | 위험 / 주의 | 전 영역            | 위험: 양방향 제어문자 U+202A–202E, U+2066–2069 (Trojan Source) / 주의: 제로폭 U+200B–200D                                                                                                                                                                    | 일반 한글·이모지                                                    |
-| `R16_OPAQUE_BINARY`              | 주의        | script             | `bin/`·훅 참조 파일이 바이너리(앞 8KB에 NUL) 또는 크기 상한 초과 → "분석 불가 실행파일"                                                                                                                                                                      | 텍스트 스크립트                                                     |
+| `R15_HIDDEN_UNICODE`             | 위험 / 주의 | 전 영역            | 위험: 양방향 제어문자 U+202A–202E, U+2066–2069 (Trojan Source), Unicode Tag U+E0000–E007F(ASCII 스머글링, 깃발 이모지 시퀀스 제외) / 주의: 제로폭·방향 표식 U+200B–200F, U+2060–2064, 파일 중간 U+FEFF                                                                                                                                                                    | 일반 한글·이모지                                                    |
+| `R16_OPAQUE_BINARY`              | 주의        | script             | `bin/`·훅 참조 파일이 바이너리(앞 8KB에 NUL) 또는 크기 상한 초과 → "분석 불가 실행파일". **설정 JSON·SKILL.md가 잘림·NUL·파싱 불가여도 같은 규칙으로 표기(fail-closed: 읽지 못한 설정 파일은 SAFE가 될 수 없다)**                                                                                                                                                                      | 텍스트 스크립트                                                     |
 
 - MCP stdio 서버가 `${CLAUDE_PLUGIN_ROOT}/server.js` 같은 플러그인 내부 파일을 가리키면 그 파일도 script 영역으로 검사(훅 참조와 같은 해석기).
 - **알려진 상한**(방법론 페이지에 공개): 참조 깊이 1(스크립트가 import하는 파일은 미추적), 문자열 조립·변수 간접 참조로 만든 명령은 못 잡음, 자연어 지시(SKILL.md 본문 "~를 업로드하라")의 의도는 판단하지 않음.
