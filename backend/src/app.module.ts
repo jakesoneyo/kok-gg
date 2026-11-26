@@ -5,6 +5,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { randomUUID } from 'node:crypto';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
+import { CatalogModule } from './catalog/catalog.module';
 import { CacheControlInterceptor } from './common/cache/cache-control.interceptor';
 import { AppThrottlerGuard } from './common/throttle/app-throttler.guard';
 import { THROTTLERS } from './common/throttle/throttle.config';
@@ -39,6 +40,7 @@ import { PrismaModule } from './prisma/prisma.module';
     ThrottlerModule.forRoot({ throttlers: THROTTLERS }),
     PrismaModule,
     AuthModule,
+    CatalogModule,
   ],
   controllers: [HealthController],
   providers: [

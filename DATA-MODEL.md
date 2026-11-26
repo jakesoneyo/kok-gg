@@ -51,7 +51,8 @@ erDiagram
 ```prisma
 // Prisma 7: datasource URL은 prisma.config.ts(CLI)와 PrismaService의 @prisma/adapter-pg(런타임)가 담당(runboard 패턴).
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["relationJoins"] // 목록·상세가 관계를 JOIN 1회로 읽게(쿼리 수 단언, 5장)
 }
 
 datasource db {
