@@ -84,3 +84,69 @@ def admin_engine(ai_url):
     eng = create_engine(ai_url[1])
     yield eng
     eng.dispose()
+
+
+@pytest.fixture
+def world(engine, admin_engine):
+    """항목 4개를 심고 동기화까지 돌린 검색 환경. 가짜 제공자의 호출 횟수를 노출한다."""
+    from types import SimpleNamespace
+
+    from app.budget.ledger import Ledger
+    from app.config import Settings
+    from app.search.index import SearchIndex
+    from app.search.service import SearchService
+    from app.summary.service import SummaryOut
+    from tests.fakes import FakeLLM, FakeVoyage
+
+    settings = Settings(daily_ai_budget_usd=1.0, ai_budget_split="50/25/25")
+    llm = FakeLLM(
+        lambda user: SummaryOut(
+            summary_ko=f"요약: {user.split(chr(10))[0]}",
+            use_cases_ko=[], install_commands=[], requirements_ko=[],
+        )
+    )  # fmt: skip
+    voyage, ledger, index = FakeVoyage(), Ledger(engine, settings), SearchIndex()
+    w = SimpleNamespace(
+        engine=engine, admin=admin_engine, settings=settings, llm=llm, voyage=voyage,
+        ledger=ledger, index=index,
+    )  # fmt: skip
+    w.service = SearchService(engine, voyage, llm, ledger, settings, index)
+
+    def seed(item_id, kind, name, desc, body, level="SAFE", filler=True):
+        import hashlib
+
+        content = body + (" filler" * 80 if filler else "")
+        with admin_engine.begin() as c:
+            c.execute(
+                text(
+                    "INSERT INTO public.item (id, kind, name, description, current_level) "
+                    "VALUES (:i, :k, :n, :d, :l) ON CONFLICT (id) DO NOTHING"
+                ),
+                {"i": item_id, "k": kind, "n": name, "d": desc, "l": level},
+            )
+            c.execute(
+                text(
+                    "INSERT INTO public.item_source_doc (item_id, path, content, content_sha256) "
+                    "VALUES (:i, 'README.md', :c, :h) ON CONFLICT (item_id) DO UPDATE SET "
+                    "content = EXCLUDED.content, content_sha256 = EXCLUDED.content_sha256"
+                ),
+                {"i": item_id, "c": content, "h": hashlib.sha256(content.encode()).hexdigest()},
+            )
+
+    def sync(n=50):
+        from app.jobs.sync import run_sync
+
+        return run_sync(engine, llm, voyage, ledger, settings, index, n)
+
+    w.seed, w.sync = seed, sync
+    seed(
+        1,
+        "HOOK",
+        "lint-before-pr",
+        "PR 전에 lint를 돌리는 hook",
+        "run lint hook before pull request",
+    )
+    seed(2, "SKILL", "lint-skill", "코드 lint 스킬", "lint skill formats code style")
+    seed(3, "HOOK", "docker-deploy", "도커 배포 hook", "deploy docker image hook")
+    seed(4, "PLUGIN", "image-gen", "이미지 생성 플러그인", "generate images with diffusion")
+    return w

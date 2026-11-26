@@ -25,6 +25,8 @@ class FakeLLM:
         if self.fail:
             raise self.fail
         out = self.outputs[min(n, len(self.outputs)) - 1]
+        if callable(out):
+            out = out(user)
         return LLMResult(out, 100, 50)
 
 
