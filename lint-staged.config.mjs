@@ -5,5 +5,8 @@ export default {
   // 함수형 명령 = 파일 목록을 인자로 넘기지 않는다(tsc는 프로젝트 단위로 검사)
   "backend/**/*.ts": () => "npm --prefix backend run typecheck",
   "frontend/**/*.{ts,tsx}": () => "npm --prefix frontend run typecheck",
-  "ai/**/*.py": ["uvx ruff check --fix", "uvx ruff format"],
+  "ai/**/*.py": [
+    "uvx ruff check --fix --force-exclude",
+    "uvx ruff format --force-exclude",
+  ],
 };
