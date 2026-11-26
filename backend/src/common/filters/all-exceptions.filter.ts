@@ -8,6 +8,7 @@ import {
 import { Prisma } from '@prisma/client';
 import type { Response } from 'express';
 import { Logger } from 'nestjs-pino';
+import { DomainException } from '../errors/domain-exception';
 
 /** API.md 1장 공통 에러 포맷. */
 interface ErrorBody {
@@ -24,6 +25,7 @@ const DEFAULT_CODE_BY_STATUS: Record<number, string> = {
   403: 'FORBIDDEN',
   404: 'NOT_FOUND',
   409: 'CONFLICT',
+  429: 'RATE_LIMITED',
 };
 
 /**
@@ -43,6 +45,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
       this.logger.error({ err: exception }, '처리되지 않은 예외');
     }
 
+    // 오류가 엣지/브라우저 캐시에 박히지 않게(API.md 1.1) 인터셉터가 먼저 붙였을 수 있는 공개 캐시 헤더를 덮는다.
+    response.setHeader('Cache-Control', 'private, no-store');
+    if (exception instanceof DomainException) {
+      for (const [k, v] of Object.entries(exception.headers)) {
+        response.setHeader(k, v);
+      }
+    }
     response.status(status).json(body);
   }
 
@@ -90,6 +99,22 @@ export class AllExceptionsFilter implements ExceptionFilter {
           statusCode: HttpStatus.CONFLICT,
           code: 'CONFLICT',
           message: '이미 존재하는 값입니다.',
+          details: null,
+        },
+      };
+    }
+
+    // update/delete 대상 행이 없을 때(관리자 이슈 처리 등) 별도 사전 조회 없이 404로 수렴시킨다.
+    if (
+      exception instanceof Prisma.PrismaClientKnownRequestError &&
+      exception.code === 'P2025'
+    ) {
+      return {
+        status: HttpStatus.NOT_FOUND,
+        body: {
+          statusCode: HttpStatus.NOT_FOUND,
+          code: 'NOT_FOUND',
+          message: '대상을 찾을 수 없습니다.',
           details: null,
         },
       };

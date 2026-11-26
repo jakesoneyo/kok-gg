@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
 import { randomUUID } from 'node:crypto';
 import { AuthModule } from './auth/auth.module';
+import { CacheControlInterceptor } from './common/cache/cache-control.interceptor';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { HealthController } from './health/health.controller';
@@ -38,6 +39,7 @@ import { PrismaModule } from './prisma/prisma.module';
   controllers: [HealthController],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_INTERCEPTOR, useClass: CacheControlInterceptor },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
   ],
 })

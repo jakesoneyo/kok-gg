@@ -10,6 +10,8 @@ export class DomainException extends HttpException {
     public readonly code: string,
     message: string,
     public readonly details: unknown = null,
+    /** Retry-After 같은 응답 헤더. 필터가 그대로 싣는다. */
+    public readonly headers: Record<string, string> = {},
   ) {
     super({ statusCode: status, code, message, details }, status);
   }
