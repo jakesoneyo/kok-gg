@@ -14,7 +14,9 @@ def test_health_db_ok():
     finally:
         app.dependency_overrides.clear()
     assert res.status_code == 200
-    assert res.json() == {"status": "ok", "db": "ok"}
+    body = res.json()
+    assert (body["status"], body["db"]) == ("ok", "ok")
+    assert {"indexVersion", "docCount", "kiwi"} <= body.keys()
 
 
 def test_health_db_down_is_degraded_not_error():
@@ -27,4 +29,5 @@ def test_health_db_down_is_degraded_not_error():
     finally:
         app.dependency_overrides.clear()
     assert res.status_code == 200
-    assert res.json() == {"status": "degraded", "db": "down"}
+    body = res.json()
+    assert (body["status"], body["db"]) == ("degraded", "down")
