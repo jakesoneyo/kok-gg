@@ -1,0 +1,36 @@
+[project]
+name = "kok-gg-ai"
+version = "0.1.0"
+description = "kok.gg AI 서비스 — 요약·검색·예산 원장 (FastAPI, ai 스키마 소유)"
+requires-python = ">=3.12"
+# ARCHITECTURE.md 11장 상한 목록 안에서 "지금 쓰는 것만". kiwipiepy·anthropic·pgvector는 C3에서 추가.
+dependencies = [
+  "fastapi~=0.165",
+  "uvicorn[standard]~=0.54",
+  "sqlalchemy~=2.1",
+  "psycopg[binary]~=3.3",
+  "alembic~=1.20",
+  "pydantic-settings~=2.16",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest~=9.2",
+  "httpx~=0.28",
+  "ruff~=0.17",
+  "testcontainers[postgres]~=4.15",
+]
+
+[tool.setuptools]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["alembic/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
