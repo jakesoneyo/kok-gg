@@ -3,8 +3,11 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
 import { randomUUID } from 'node:crypto';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
 import { CacheControlInterceptor } from './common/cache/cache-control.interceptor';
+import { AppThrottlerGuard } from './common/throttle/app-throttler.guard';
+import { THROTTLERS } from './common/throttle/throttle.config';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { HealthController } from './health/health.controller';
@@ -33,11 +36,13 @@ import { PrismaModule } from './prisma/prisma.module';
             : { target: 'pino-pretty', options: { singleLine: true } },
       },
     }),
+    ThrottlerModule.forRoot({ throttlers: THROTTLERS }),
     PrismaModule,
     AuthModule,
   ],
   controllers: [HealthController],
   providers: [
+    { provide: APP_GUARD, useClass: AppThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_INTERCEPTOR, useClass: CacheControlInterceptor },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
