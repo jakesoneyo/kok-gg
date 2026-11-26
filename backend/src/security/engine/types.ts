@@ -58,6 +58,8 @@ export interface RuleMeta {
   titleKo: string;
   descriptionKo: string;
   regions: readonly Region[];
+  /** 규칙이 낼 수 있는 등급 전부. 생략 시 [severity]. 입력에 따라 등급이 갈리는 규칙(R03·R06·R15)만 명시. */
+  severities?: readonly Severity[];
 }
 
 export interface RuleContext {

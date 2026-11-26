@@ -3,8 +3,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { z } from 'zod';
 import { DomainException } from '../common/errors/domain-exception';
 import { PrismaService } from '../prisma/prisma.service';
+import { commandWarnings } from '../security/command-warnings';
+import { DISCLAIMER_KO, ruleTitleKo } from '../security/security-copy';
+import { addDays } from '../trending/algo/dates';
+import { dailyGains } from '../trending/algo/gains';
 import { toTrendMap } from './catalog.service';
-import { DISCLAIMER_KO, ruleTitleKo } from './security-copy';
 
 /** 계약 뷰 ai.v_item_summary_public 행. NestJS는 이 뷰만 읽을 수 있다(DB 권한). */
 const summaryRowSchema = z.object({
@@ -19,7 +22,6 @@ const summaryRowSchema = z.object({
   generated_at: z.date(),
 });
 
-const DAY_MS = 86_400_000;
 const isoDay = (d: Date) => d.toISOString().slice(0, 10);
 
 @Injectable()
@@ -147,11 +149,11 @@ export class ItemDetailService {
       status: r.status,
       summaryKo: r.summary_ko,
       useCasesKo: r.use_cases_ko,
-      // warnings(설치 명령 위험 신호)는 보안 엔진 연동(C4)에서 채운다.
-      installCommands: r.install_commands.map((c) => ({
-        command: typeof c === 'string' ? c : c.command,
-        warnings: [] as string[],
-      })),
+      // 요약이 인용한 설치 명령도 같은 규칙 엔진(shell 영역)으로 검사해 경고를 붙인다.
+      installCommands: r.install_commands.map((c) => {
+        const command = typeof c === 'string' ? c : c.command;
+        return { command, warnings: commandWarnings(command) };
+      }),
       requirementsKo: r.requirements_ko,
       model: r.model,
       generatedAt: r.generated_at,
@@ -159,10 +161,8 @@ export class ItemDetailService {
   }
 
   /**
-   * 일별 스타 증가량 시계열. 규칙(ARCHITECTURE 4.2): 전일·당일 스냅샷이 모두 있으면 차분,
-   * 아니면 공식 기록, 둘 다 없으면 null(모름 — 0이나 누적 차분으로 메우지 않는다).
-   *
-   * ponytail: C2 `dailyGains()`가 병합되면 이 계산을 그 함수 호출로 교체한다(같은 규칙의 3줄 복제).
+   * 일별 스타 증가량 시계열. 증가량 규칙(스냅샷 차분 > 공식 기록 > 모름 null)은 C2 `dailyGains()`가 단일 원천이다.
+   * 여기서는 출처 라벨(source)과 총합만 덧붙인다.
    */
   async stars(id: number, days: number) {
     const item = await this.prisma.item.findFirst({
@@ -172,38 +172,37 @@ export class ItemDetailService {
     if (!item) {
       throw new DomainException(404, 'NOT_FOUND', '항목을 찾을 수 없습니다.');
     }
-    const today = new Date(isoDay(new Date()));
-    const from = new Date(today.getTime() - (days - 1) * DAY_MS);
-    const rows = await this.prisma.repoStarDay.findMany({
+    const to = isoDay(new Date());
+    const from = addDays(to, -(days - 1));
+    const found = await this.prisma.repoStarDay.findMany({
       where: {
         repoId: item.repoId,
-        day: { gte: new Date(from.getTime() - DAY_MS) }, // 첫날 차분용 전일 포함
+        day: { gte: new Date(addDays(from, -1)) }, // 첫날 차분용 전일 포함
       },
     });
-    const byDay = new Map(rows.map((r) => [isoDay(r.day), r]));
-
-    const series = Array.from({ length: days }, (_, i) => {
-      const d = new Date(from.getTime() + i * DAY_MS);
-      const cur = byDay.get(isoDay(d));
-      const prev = byDay.get(isoDay(new Date(d.getTime() - DAY_MS)));
-      const total = cur?.snapshotTotal ?? null;
-      if (total !== null && prev?.snapshotTotal != null) {
-        return {
-          day: isoDay(d),
-          gain: total - prev.snapshotTotal,
-          total,
-          source: 'SNAPSHOT' as const,
-        };
-      }
-      if (cur?.officialAdded != null) {
-        return {
-          day: isoDay(d),
-          gain: cur.officialAdded,
-          total,
-          source: 'OFFICIAL' as const,
-        };
-      }
-      return { day: isoDay(d), gain: null, total, source: null };
+    const rows = found.map((r) => ({
+      day: isoDay(r.day),
+      snapshotTotal: r.snapshotTotal,
+      officialAdded: r.officialAdded,
+    }));
+    const byDay = new Map(rows.map((r) => [r.day, r]));
+    const series = dailyGains(rows, from, to).map((gain, i) => {
+      const day = addDays(from, i);
+      const cur = byDay.get(day);
+      const bothSnapshots =
+        cur?.snapshotTotal != null &&
+        byDay.get(addDays(day, -1))?.snapshotTotal != null;
+      return {
+        day,
+        gain,
+        total: cur?.snapshotTotal ?? null,
+        source:
+          gain === null
+            ? null
+            : bothSnapshots
+              ? ('SNAPSHOT' as const)
+              : ('OFFICIAL' as const),
+      };
     });
     return { repoId: item.repoId, series };
   }

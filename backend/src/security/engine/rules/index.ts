@@ -39,11 +39,12 @@ export const RULES: readonly Rule[] = [
 
 /** 함수(match)를 뺀 직렬화 가능한 메타. */
 export const RULE_METAS: readonly RuleMeta[] = RULES.map(
-  ({ id, severity, titleKo, descriptionKo, regions }) => ({
+  ({ id, severity, titleKo, descriptionKo, regions, severities }) => ({
     id,
     severity,
     titleKo,
     descriptionKo,
     regions,
+    severities: severities ?? [severity],
   }),
 );

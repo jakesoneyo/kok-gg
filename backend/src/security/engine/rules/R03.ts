@@ -19,6 +19,7 @@ const CAUTION = [
 export const R03: Rule = {
   id: 'R03_SECRET_READ',
   severity: 'DANGER',
+  severities: ['CAUTION', 'DANGER'],
   titleKo: '비밀 파일 읽기',
   descriptionKo:
     'SSH 키, 클라우드 자격증명, 토큰 저장소 같은 비밀 파일(주의: .env)을 읽습니다. 단독으로는 정상 용도일 수 있으나 외부 전송과 결합되면 유출입니다.',

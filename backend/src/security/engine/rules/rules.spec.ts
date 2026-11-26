@@ -309,6 +309,14 @@ describe('TS-1 규칙 메타', () => {
       expect(m).not.toHaveProperty('match');
     }
   });
+
+  it('severities는 등급이 갈리는 규칙(R03·R06·R15)만 둘이고 최고 등급을 포함한다', () => {
+    const split = RULE_METAS.filter((m) => m.severities!.length === 2).map(
+      (m) => m.id.slice(0, 3),
+    );
+    expect(split).toEqual(['R03', 'R06', 'R15']);
+    for (const m of RULE_METAS) expect(m.severities).toContain(m.severity);
+  });
 });
 
 describe.each(CASES)('TS-1 $id', (c) => {

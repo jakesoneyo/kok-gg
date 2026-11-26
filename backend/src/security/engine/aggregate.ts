@@ -12,7 +12,9 @@ const level = (fs: readonly Pick<Finding, 'severity'>[]): RiskLevel =>
       ? 'CAUTION'
       : 'SAFE';
 
-export function aggregate(findings: readonly Finding[]): {
+export function aggregate(
+  findings: readonly Pick<Finding, 'severity' | 'suppressed'>[],
+): {
   rawLevel: RiskLevel;
   level: RiskLevel;
 } {

@@ -13,6 +13,7 @@ const EMOJI_ZWJ = new RegExp(
 export const R15: Rule = {
   id: 'R15_HIDDEN_UNICODE',
   severity: 'DANGER',
+  severities: ['CAUTION', 'DANGER'],
   titleKo: '숨은 유니코드 문자',
   descriptionKo:
     '눈에 보이지 않는 문자가 섞여 있습니다. 방향 제어문자는 화면에 보이는 코드와 실제 실행되는 코드를 다르게 만들 수 있습니다(Trojan Source). 제로폭 문자는 주의 신호입니다.',

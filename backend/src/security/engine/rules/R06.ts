@@ -13,6 +13,7 @@ const BASE64_BLOB = /[A-Za-z0-9+/]{200,}={0,2}/;
 export const R06: Rule = {
   id: 'R06_OBFUSCATED_EXEC',
   severity: 'DANGER',
+  severities: ['CAUTION', 'DANGER'],
   titleKo: '난독화된 코드 실행',
   descriptionKo:
     '인코딩(base64 등)한 코드를 풀어 곧바로 실행합니다. 읽는 사람에게 내용을 숨기려는 전형적 패턴입니다(주의: 200자 이상 인코딩 덩어리·4000자 이상 줄).',

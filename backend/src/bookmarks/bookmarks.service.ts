@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { decodeCursor, encodeCursor } from '../common/cursor/cursor.codec';
 import { DomainException } from '../common/errors/domain-exception';
 import { ITEM_CARD_SELECT, toItemCard } from '../catalog/item-card';
-import { ruleTitleKo } from '../catalog/security-copy';
+import { ruleTitleKo } from '../security/security-copy';
 import { PrismaService } from '../prisma/prisma.service';
 
 const CHANGES_LIMIT = 100;
