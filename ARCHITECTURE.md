@@ -526,7 +526,7 @@ kok-gg/
 | `GITHUB_TOKEN_INGEST` · `MAX_TRACKED_REPOS` · `MAX_ITEMS_PER_REPO` · `GITHUB_CORE_RESERVE` · `EXTERNAL_STAR_SOURCE` · `EXTERNAL_STAR_SOURCE_UNTIL`                      | batch              |
 | `GH_DISPATCH_TOKEN` · `GH_DISPATCH_REPO` · `GH_DISPATCH_WORKFLOW`                                                                                                       | backend(수동 실행) |
 | `ANTHROPIC_API_KEY` · `VOYAGE_API_KEY` · `SUMMARY_MODEL` · `ANSWER_MODEL` · `EMBED_MODEL` · `RERANK_MODEL` · `DAILY_AI_BUDGET_USD` · `AI_BUDGET_SPLIT` · `MODEL_PRICES` | ai                 |
-| `VITE_API_BASE_URL` · `VITE_APPEAL_ISSUE_URL`                                                                                                                           | frontend(Vercel)   |
+| `VITE_API_BASE_URL` · `VITE_ISSUES_REPO` · `VITE_DEMO_ADMIN_READONLY`                                                                                                                           | frontend(Vercel)   |
 
 ### 12.2 Phase 1 — 무료
 
