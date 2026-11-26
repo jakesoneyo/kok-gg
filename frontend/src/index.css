@@ -12,8 +12,51 @@
   --color-chip: #eef1f8;
   --color-accent: #3355d6;
   --color-danger: #a8231a;
+  --color-caution: #f8d688;
+  --color-caution-ink: #5c3a00;
+  --color-safe: #e9f6ef;
+  --color-safe-ink: #15603a;
+  --color-safe-line: #c5e6d3;
+  --color-wash: #eceff7;
+  --color-code: #111829;
+
+  --radius-card: 22px;
+  --radius-bevel: 28px;
+
+  --shadow-card:
+    0 1px 2px rgba(20, 30, 60, 0.04), 0 8px 24px -10px rgba(20, 30, 60, 0.1),
+    0 28px 56px -28px rgba(20, 30, 60, 0.14), inset 0 0 0 1px rgba(30, 45, 90, 0.06);
+  --shadow-card-hover:
+    0 1px 2px rgba(20, 30, 60, 0.06), 0 12px 30px -10px rgba(20, 30, 60, 0.16),
+    0 32px 60px -28px rgba(20, 30, 60, 0.2), inset 0 0 0 1px rgba(30, 45, 90, 0.08);
+  --shadow-hair: inset 0 0 0 1px rgba(30, 45, 90, 0.09);
+
+  --font-sans: "Geist", "Noto Sans KR", system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
 }
 
 body {
-  @apply bg-bg text-ink;
+  @apply bg-bg font-sans text-ink antialiased;
+  font-size: 14px;
+}
+
+/* 키보드 포커스는 항상 보이게 */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+a {
+  transition: color 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
