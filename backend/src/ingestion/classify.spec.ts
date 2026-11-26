@@ -186,3 +186,22 @@ describe('skillMeta', () => {
     });
   });
 });
+
+describe('REVIEW B4 — marketplace.json의 NUL 이스케이프', () => {
+  it('name·description·rawSource 어디에도 NUL이 남지 않는다(jsonb \\u0000 거부 방지)', () => {
+    const mp = JSON.stringify({
+      name: 'm\0x',
+      plugins: [
+        {
+          name: 'p\0q',
+          description: 'd\0e',
+          source: { source: 'npm', package: 'x\0y', 'k\0': 1 },
+        },
+      ],
+    });
+    const r = run([MP], { [MP]: mp });
+    expect(JSON.stringify(r)).not.toContain('\\u0000');
+    expect(r.marketplaces[0].name).toBe('mx');
+    expect(r.items[0].name).toBe('pq');
+  });
+});

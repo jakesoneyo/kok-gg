@@ -295,6 +295,49 @@ describe('수집 파이프라인 통합', () => {
     expect(await app.prisma.securityScan.count()).toBe(scans);
   });
 
+  it('REVIEW B4: README에 NUL이 있어도 저장되고(NUL 제거), 한 저장소의 예외는 failure 1건으로 격리되어 단계가 DONE', async () => {
+    gh.repo('a/hook-lint').files['README.md'] =
+      `# hook-lint\0${'x'.repeat(200)}`;
+    const out = await app.pipeline.ingest({ asOf: D1 });
+    expect(out).toMatchObject({ skipped: false, status: 'SUCCEEDED' });
+    const doc = await app.prisma.itemSourceDoc.findFirstOrThrow({
+      where: { item: { repo: { name: 'hook-lint' } } },
+    });
+    expect(doc.content).not.toContain('\0');
+    expect(await app.prisma.ingestionFailure.count()).toBe(0);
+  });
+
+  it('REVIEW B4: GithubError가 아닌 예외도 저장소 단위로 격리(QUALIFY·FETCH_CONTENT 단계가 FAILED가 되지 않음)', async () => {
+    // 실패율 20% 규칙(1/4 = 25%)에 걸리지 않도록 정상 저장소를 늘린다
+    for (const n of ['f1', 'f2', 'f3', 'f4', 'f5'])
+      gh.add({
+        owner: 'f',
+        name: n,
+        stars: 10,
+        head: sha('7'),
+        topics: ['claude-code'],
+        files: { 'skills/x/SKILL.md': SKILL() },
+      });
+    const real = gh.getTree.bind(gh);
+    gh.getTree = async (owner, repo) => {
+      if (repo === 'hook-lint') throw new Error('invalid byte sequence');
+      return real(owner, repo);
+    };
+    const out = await app.pipeline.ingest({ asOf: D1 });
+    if (out.skipped) throw new Error('skipped');
+    const stage = (name: string) => stageRow(out.runId, name);
+    expect((await stage('QUALIFY')).status).toBe('DONE');
+    expect((await stage('FETCH_CONTENT')).status).toBe('DONE');
+    const failures = await app.prisma.ingestionFailure.findMany({
+      where: { stage: 'QUALIFY' },
+    });
+    expect(failures).toHaveLength(1);
+    expect(
+      (await app.prisma.repo.findFirstOrThrow({ where: { name: 'market' } }))
+        .status,
+    ).toBe('TRACKED');
+  });
+
   it('IT-7: 신규 저장소 공식 기록 실패 + 전일 스냅샷 없음 → gain null · 트렌드 없음 · OFFICIAL_HISTORY_FAILED 1건', async () => {
     gh.add({
       owner: 'e',

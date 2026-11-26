@@ -5,6 +5,7 @@ import { z } from 'zod';
 import {
   GithubError,
   RateLimitPausedError,
+  stripNul,
   type GhRepo,
   type GhSearchPage,
   type GhSnapshot,
@@ -179,7 +180,7 @@ export function mapRepo(raw: unknown): GhRepo {
     nodeId: r.node_id,
     owner: r.owner.login,
     name: r.name,
-    description: r.description ?? null,
+    description: r.description == null ? null : stripNul(r.description),
     stars: r.stargazers_count,
     pushedAt: r.pushed_at ?? null,
     createdAt: r.created_at ?? null,
@@ -402,7 +403,7 @@ export class HttpGithubClient extends GithubClient {
         nodeId: v.id,
         owner: v.owner.login,
         name: v.name,
-        description: v.description ?? null,
+        description: v.description == null ? null : stripNul(v.description),
         stars: v.stargazerCount,
         pushedAt: v.pushedAt ?? null,
         createdAt: v.createdAt ?? null,
@@ -448,7 +449,7 @@ export class HttpGithubClient extends GithubClient {
         { signal: AbortSignal.timeout(30_000) },
       );
       if (res.status === 404) return null;
-      if (res.ok) return await res.text();
+      if (res.ok) return stripNul(await res.text());
     } catch {
       /* contents API로 대체 */
     }
@@ -459,7 +460,7 @@ export class HttpGithubClient extends GithubClient {
     );
     if (res.status === 404) return null;
     if (!res.ok) throw new GithubError(res.status, `GH_${res.status}`, path);
-    return res.text();
+    return stripNul(await res.text());
   }
 
   /** 응답 형식은 문서 기준(`{week,total,days[7]}`, 최신 주부터) — 실제 캡처 전까지 [미검증]. */

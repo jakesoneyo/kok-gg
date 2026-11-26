@@ -1,6 +1,12 @@
 // GitHub 클라이언트의 계약 타입. 수집 단계는 이 인터페이스만 알고 HTTP 세부(헤더·페이지·GraphQL)는 모른다 —
 // 그래서 테스트·CI는 네트워크 없이 fake 구현으로 돈다.
 
+/**
+ * GitHub 원문 문자열에서 NUL(\0)을 제거한다. Postgres text/jsonb는 NUL을 거부하고, 저장소 작성자가 README·JSON에
+ * NUL을 넣을 수 있으므로 DB에 쓰기 전 신뢰 경계(GitHub 응답)에서 한 번 걸러야 한 저장소가 배치 전체를 멈추지 못한다.
+ */
+export const stripNul = (s: string): string => s.replaceAll('\0', '');
+
 export interface GhRepo {
   githubId: number;
   nodeId: string;

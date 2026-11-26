@@ -3,12 +3,16 @@
 import { Injectable } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { GithubClient } from '../../github/github.client';
-import { GithubError, type TreeEntry } from '../../github/github.types';
+import {
+  GithubError,
+  stripNul,
+  type TreeEntry,
+} from '../../github/github.types';
 import { PrismaService } from '../../prisma/prisma.service';
 import { skillMeta } from '../classify';
 import { RepoInspector } from '../repo-inspector.service';
 import type { Stage, StageContext } from '../stage';
-import { errorMessage, forEachLimit } from '../util';
+import { errorMessage, forEachLimit, isPause } from '../util';
 
 const DOC_MAX_CHARS = 64 * 1024; // DATA-MODEL: 64KB 절단
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
@@ -56,9 +60,16 @@ export class FetchContentStage implements Stage {
         await this.fetchRepo(ctx, repo);
         ctx.add('processed');
       } catch (e) {
-        if (!(e instanceof GithubError)) throw e; // PAUSED·DB 오류는 단계 수준
+        // 레이트리밋 PAUSED만 단계 수준. 그 외(GitHub·DB 거부 등)는 저장소 단위로 격리해야
+        // 한 저장소가 매일 같은 지점에서 단계 전체를 멈추는 독 알약이 되지 않는다(REVIEW B4).
+        // 진짜 치명 오류(DB 단절)는 실패율 규칙이 단계 FAILED로 올린다.
+        if (isPause(e)) throw e;
         skip.add(repo.id);
-        await ctx.failure(e.code, errorMessage(e), { repoId: repo.id });
+        await ctx.failure(
+          e instanceof GithubError ? e.code : 'FETCH_CONTENT_FAILED',
+          errorMessage(e),
+          { repoId: repo.id },
+        );
       }
     }
   }
@@ -97,13 +108,14 @@ export class FetchContentStage implements Stage {
         item.path,
         out.tree.entries,
       )) {
-        const text = await this.github.getFile(
+        const raw = await this.github.getFile(
           repo.owner,
           repo.name,
           repo.head_sha,
           path,
         );
-        if (text === null) continue;
+        if (raw === null) continue;
+        const text = stripNul(raw); // 클라이언트 구현과 무관하게 DB 쓰기 직전에도 보장
         const meta =
           path.toLowerCase().endsWith('/skill.md') || path === 'SKILL.md'
             ? skillMeta(text)

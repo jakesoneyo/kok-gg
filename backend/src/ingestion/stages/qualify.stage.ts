@@ -102,10 +102,17 @@ export class QualifyStage implements Stage {
           } else if (e instanceof GithubError) {
             skip.add(repo.id);
             await ctx.failure(e.code, errorMessage(e), { repoId: repo.id });
-          } else {
-            // PAUSED(레이트리밋)는 지금까지의 진행을 커서로 남기고 올린다. DB 오류 등은 그대로 단계 실패
-            if (isPause(e)) await ctx.commit({ lastRepoId, paused: true });
+          } else if (isPause(e)) {
+            // PAUSED(레이트리밋)는 지금까지의 진행을 커서로 남기고 올린다
+            await ctx.commit({ lastRepoId, paused: true });
             throw e;
+          } else {
+            // 그 외 예외(DB의 NUL 거부 등)도 저장소 단위로 격리 — 안 그러면 같은 저장소를 스타순으로
+            // 매일 먼저 집어 단계 전체가 영구 실패한다(REVIEW B4). 진짜 치명 오류는 실패율 규칙이 올린다.
+            skip.add(repo.id);
+            await ctx.failure('QUALIFY_FAILED', errorMessage(e), {
+              repoId: repo.id,
+            });
           }
         }
         lastRepoId = repo.id;

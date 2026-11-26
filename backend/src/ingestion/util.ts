@@ -1,5 +1,5 @@
 // 수집 단계 공용 유틸.
-import { RateLimitPausedError } from '../github/github.types';
+import { RateLimitPausedError, stripNul } from '../github/github.types';
 
 /**
  * 동시 `limit`개로 항목을 처리한다. 항목 하나의 예외는 나머지를 멈추고(새 항목 시작 안 함) 모두 정리된 뒤 다시 던진다 —
@@ -42,3 +42,17 @@ export const chunk = <T>(xs: readonly T[], n: number): T[][] =>
   Array.from({ length: Math.ceil(xs.length / n) }, (_, i) =>
     xs.slice(i * n, i * n + n),
   );
+
+/**
+ * JSON으로 파싱된 값의 모든 문자열(키 포함)에서 NUL을 제거한다. `"\\u0000"` 이스케이프는 원문 텍스트에서
+ * 제거할 수 없고 파싱 후에야 NUL이 되며, jsonb는 이를 거부한다.
+ */
+export function deepStripNul<T>(v: T): T {
+  if (typeof v === 'string') return stripNul(v) as T;
+  if (Array.isArray(v)) return v.map(deepStripNul) as T;
+  if (v && typeof v === 'object')
+    return Object.fromEntries(
+      Object.entries(v).map(([k, x]) => [stripNul(k), deepStripNul(x)]),
+    ) as T;
+  return v;
+}

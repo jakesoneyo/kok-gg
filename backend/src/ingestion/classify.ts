@@ -1,6 +1,7 @@
 // 저장소 트리 → Item 초안 판별(순수 함수, IO 없음). 증거 파일 규칙과 마켓플레이스 source 매핑은 ARCHITECTURE 3.4.
 // 호출 측(RepoInspector)이 트리와 증거 JSON 내용을 가져다 넘기고, 결과를 DB에 upsert한다.
 import type { ItemKind, ItemSourceType } from '@prisma/client';
+import { deepStripNul } from './util';
 
 export interface ItemDraft {
   kind: ItemKind;
@@ -109,7 +110,7 @@ export function skillMeta(content: string): {
 function parseJson(text: string | undefined): Json | null {
   if (!text) return null;
   try {
-    const v: unknown = JSON.parse(text);
+    const v: unknown = deepStripNul(JSON.parse(text));
     return isObj(v) ? v : null;
   } catch {
     return null;

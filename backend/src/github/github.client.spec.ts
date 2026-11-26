@@ -135,6 +135,17 @@ describe('HttpGithubClient', () => {
     expect(b.client.usage().core).toBe(1);
   });
 
+  it('REVIEW B4: getFile은 raw·contents 경로 모두 NUL을 제거한다(Postgres text는 NUL 거부)', async () => {
+    const raw = setup(() => new Response('a\0b'));
+    expect(await raw.client.getFile('o', 'r', 'sha', 'a.md')).toBe('ab');
+    const api = setup((url) =>
+      url.includes('raw.githubusercontent')
+        ? new Response('', { status: 503 })
+        : new Response('c\0d'),
+    );
+    expect(await api.client.getFile('o', 'r', 'sha', 'a.md')).toBe('cd');
+  });
+
   it('snapshots: null 노드를 순서 그대로 보존', async () => {
     const node = {
       id: 'N1',
