@@ -1,0 +1,63 @@
+# 일일 수집 배치. backend 이미지(GHCR)를 `node dist/cli.js ingest`로 실행한다 — API 서버와 같은 이미지, 다른 진입점.
+# 03:00 KST = 18:00 UTC 크론 + 관리자 콘솔의 수동 실행(workflow_dispatch, run_id·stages 입력).
+# 시크릿은 GitHub Actions Secrets에만 둔다(.env 커밋 금지). 이미지 빌드·푸시는 배포 단계(C6)에서 만든다.
+# 주의: Actions 시크릿/변수 이름은 `GITHUB_` 접두어를 쓸 수 없어 INGEST_* 이름으로 받아 컨테이너 안에서 앱이 기대하는 이름으로 넘긴다.
+name: Ingest
+on:
+  schedule:
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "관리자 콘솔이 만든 ingestion_run id (비우면 오늘 정기 실행)"
+        required: false
+        type: string
+      stages:
+        description: "쉼표로 구분한 단계 (예: SNAPSHOT,TRENDING). 비우면 run 설정/전체"
+        required: false
+        type: string
+
+# 같은 시각에 두 실행이 돌지 않게 하는 1차 방어(2차는 DB advisory lock). 진행 중인 실행은 취소하지 않는다.
+concurrency:
+  group: ingest
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: GHCR 로그인
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: 수집 실행
+        env:
+          # 입력은 셸에 직접 보간하지 않고 환경변수로 받는다(스크립트 주입 방지). 값 검증은 CLI가 한다.
+          RUN_ID: ${{ inputs.run_id }}
+          STAGES: ${{ inputs.stages }}
+          IMAGE: ghcr.io/${{ github.repository_owner }}/kok-gg-backend:latest
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
+          INTERNAL_API_TOKEN: ${{ secrets.INTERNAL_API_TOKEN }}
+          INGEST_GH_TOKEN: ${{ secrets.INGEST_GH_TOKEN }}
+          MAX_TRACKED_REPOS: ${{ vars.MAX_TRACKED_REPOS }}
+          MAX_ITEMS_PER_REPO: ${{ vars.MAX_ITEMS_PER_REPO }}
+          INGEST_CORE_RESERVE: ${{ vars.INGEST_CORE_RESERVE }}
+          EXTERNAL_STAR_SOURCE: ${{ vars.EXTERNAL_STAR_SOURCE }}
+          EXTERNAL_STAR_SOURCE_UNTIL: ${{ vars.EXTERNAL_STAR_SOURCE_UNTIL }}
+        run: |
+          args=()
+          [ -n "$RUN_ID" ] && args+=(--run-id "$RUN_ID")
+          [ -n "$STAGES" ] && args+=(--stages "$STAGES")
+          docker pull "$IMAGE"
+          docker run --rm \
+            -e DATABASE_URL -e DIRECT_URL -e AI_BASE_URL -e INTERNAL_API_TOKEN \
+            -e GITHUB_TOKEN_INGEST="$INGEST_GH_TOKEN" -e GITHUB_CORE_RESERVE="$INGEST_CORE_RESERVE" \
+            -e MAX_TRACKED_REPOS -e MAX_ITEMS_PER_REPO \
+            -e EXTERNAL_STAR_SOURCE -e EXTERNAL_STAR_SOURCE_UNTIL \
+            "$IMAGE" node dist/cli.js ingest "${args[@]}"
