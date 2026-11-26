@@ -193,6 +193,16 @@ describe('computeTrendScore — 불변식', () => {
     ).toBeNull(); // G=5 < 10
   });
 
+  it('활동일 조건 미달(D7 3일 / D30 5일) → null', () => {
+    expect(
+      computeTrendScore([5, 5, 0, 0, 0, 0, 0], { ...base, totalStars: 500 }),
+    ).toBeNull();
+    const d30 = [...flat(26, 0), 4, 4, 4, 4];
+    expect(
+      computeTrendScore(d30, { ...base, window: 'D30', totalStars: 500 }),
+    ).toBeNull();
+  });
+
   it('D30 정상 경로와 활동일 조건', () => {
     const r = computeTrendScore(flat(30, 1), {
       ...base,
