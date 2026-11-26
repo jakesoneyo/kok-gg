@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from alembic.config import Config
 from sqlalchemy import create_engine, text
-from testcontainers.postgres import PostgresContainer
+from testcontainers.community.postgres import PostgresContainer
 
 from alembic import command
 
