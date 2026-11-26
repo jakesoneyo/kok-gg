@@ -10,6 +10,7 @@ import { CatalogModule } from './catalog/catalog.module';
 import { CacheControlInterceptor } from './common/cache/cache-control.interceptor';
 import { AppThrottlerGuard } from './common/throttle/app-throttler.guard';
 import { THROTTLERS } from './common/throttle/throttle.config';
+import { SearchModule } from './search/search.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { HealthController } from './health/health.controller';
@@ -43,6 +44,7 @@ import { PrismaModule } from './prisma/prisma.module';
     AuthModule,
     CatalogModule,
     BookmarksModule,
+    SearchModule,
   ],
   controllers: [HealthController],
   providers: [
