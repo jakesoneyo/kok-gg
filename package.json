@@ -1,0 +1,16 @@
+{
+  "name": "kok-gg",
+  "private": true,
+  "version": "0.0.0",
+  "description": "kok.gg 모노레포 루트 — 실제 코드는 backend/, ai/, frontend/에 있음. 이 package.json은 pre-commit 훅(husky/lint-staged/prettier)과 오케스트레이션 전용.",
+  "scripts": {
+    "typecheck": "npm --prefix backend run typecheck && npm --prefix frontend run typecheck",
+    "gen:ai-contract": "cd ai && alembic upgrade head --sql > ../backend/test/fixtures/ai-contract.sql",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.2",
+    "prettier": "^3.10.1"
+  }
+}

@@ -1,0 +1,5 @@
+package-lock.json
+**/prisma/migrations/
+**/fixtures/
+design/
+*.md
