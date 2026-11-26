@@ -10,7 +10,7 @@ function setup(handler: Handler, opts: { coreReserve?: number } = {}) {
   const sleeps: number[] = [];
   let inFlight = 0;
   let maxInFlight = 0;
-  const fetchImpl = (async (url: string) => {
+  const fetchImpl = async (url: string) => {
     urls.push(url);
     inFlight += 1;
     maxInFlight = Math.max(maxInFlight, inFlight);
@@ -20,14 +20,15 @@ function setup(handler: Handler, opts: { coreReserve?: number } = {}) {
     } finally {
       inFlight -= 1;
     }
-  }) as unknown as typeof fetch;
+  };
   const client = new HttpGithubClient({
     token: 't',
     fetchImpl,
     now: () => clock,
-    sleep: async (ms) => {
+    sleep: (ms) => {
       sleeps.push(ms);
       clock += ms;
+      return Promise.resolve();
     },
     ...opts,
   });

@@ -1,6 +1,7 @@
 // GitHub 클라이언트 인터페이스(DI 토큰 겸용)와 native fetch 구현. 레이트리밋 예산은 여기서만 다룬다:
 // 리소스별 토큰 버킷(search 30/분·code 10/분) · 잔량 추적과 예비분 · 403/429/422/5xx 백오프 · 동시 요청 4.
 import { Injectable } from '@nestjs/common';
+import { z } from 'zod';
 import {
   GithubError,
   RateLimitPausedError,
@@ -33,7 +34,6 @@ export abstract class GithubClient {
 }
 
 type Resource = 'core' | 'search' | 'code_search' | 'graphql';
-type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- 외부 JSON, 아래 map*에서 좁힌다
 
 export interface HttpGithubOptions {
   token: string;
@@ -108,24 +108,84 @@ const GRAPHQL = `query($ids:[ID!]!){nodes(ids:$ids){... on Repository{
   id databaseId name owner{login} description stargazerCount pushedAt createdAt
   isArchived isFork defaultBranchRef{name target{oid}} repositoryTopics(first:20){nodes{topic{name}}}}}}`;
 
-export function mapRepo(r: Json): GhRepo {
-  const owner = r.owner?.login ?? r.full_name?.split('/')[0];
-  const name = r.name ?? r.full_name?.split('/')[1];
-  const githubId = r.id ?? r.databaseId;
-  if (!owner || !name || typeof githubId !== 'number' || !r.node_id)
-    throw new GithubError(0, 'PARSE_ERROR', '저장소 응답 형식 불일치');
+// 외부 응답은 신뢰 경계 — 필요한 필드만 zod로 검증·정규화한다(형식이 어긋나면 PARSE_ERROR로 단계가 알게).
+const repoSchema = z.object({
+  id: z.number(),
+  node_id: z.string(),
+  name: z.string(),
+  owner: z.object({ login: z.string() }),
+  description: z.string().nullish(),
+  stargazers_count: z.number().default(0),
+  pushed_at: z.string().nullish(),
+  created_at: z.string().nullish(),
+  archived: z.boolean().default(false),
+  fork: z.boolean().default(false),
+  topics: z.array(z.string()).default([]),
+  default_branch: z.string().nullish(),
+});
+const treeSchema = z.object({
+  sha: z.string(),
+  truncated: z.boolean().default(false),
+  tree: z.array(
+    z.object({
+      path: z.string(),
+      type: z.string(),
+      size: z.number().default(0),
+    }),
+  ),
+});
+const historySchema = z.array(
+  z.object({
+    week: z.coerce.number(),
+    total: z.coerce.number(),
+    days: z.array(z.coerce.number()),
+  }),
+);
+const nodeSchema = z.object({
+  id: z.string(),
+  databaseId: z.number(),
+  name: z.string(),
+  owner: z.object({ login: z.string() }),
+  description: z.string().nullish(),
+  stargazerCount: z.number(),
+  pushedAt: z.string().nullish(),
+  createdAt: z.string().nullish(),
+  isArchived: z.boolean(),
+  isFork: z.boolean(),
+  defaultBranchRef: z
+    .object({
+      name: z.string(),
+      target: z.object({ oid: z.string() }).nullish(),
+    })
+    .nullish(),
+  repositoryTopics: z
+    .object({
+      nodes: z.array(z.object({ topic: z.object({ name: z.string() }) })),
+    })
+    .nullish(),
+});
+
+function parse<T>(schema: z.ZodType<T>, raw: unknown, what: string): T {
+  const r = schema.safeParse(raw);
+  if (!r.success)
+    throw new GithubError(0, 'PARSE_ERROR', `${what} 응답 형식 불일치`);
+  return r.data;
+}
+
+export function mapRepo(raw: unknown): GhRepo {
+  const r = parse(repoSchema, raw, '저장소');
   return {
-    githubId,
+    githubId: r.id,
     nodeId: r.node_id,
-    owner,
-    name,
+    owner: r.owner.login,
+    name: r.name,
     description: r.description ?? null,
-    stars: r.stargazers_count ?? 0,
+    stars: r.stargazers_count,
     pushedAt: r.pushed_at ?? null,
     createdAt: r.created_at ?? null,
-    archived: !!r.archived,
-    fork: !!r.fork,
-    topics: r.topics ?? [],
+    archived: r.archived,
+    fork: r.fork,
+    topics: r.topics,
     defaultBranch: r.default_branch ?? null,
   };
 }
@@ -266,12 +326,12 @@ export class HttpGithubClient extends GithubClient {
     return 1000 * 2 ** (attempt - 1);
   }
 
-  private async json<T = Json>(
+  private async json(
     resource: Resource,
     path: string,
     init?: RequestInit,
     retryOn422 = false,
-  ): Promise<T | null> {
+  ): Promise<unknown> {
     const res = await this.request(
       resource,
       `${this.api}${path}`,
@@ -280,7 +340,7 @@ export class HttpGithubClient extends GithubClient {
     );
     if (res.status === 404) return null;
     if (!res.ok) throw new GithubError(res.status, `GH_${res.status}`, path);
-    return (await res.json()) as T;
+    return (await res.json()) as unknown;
   }
 
   async searchRepositories(q: string, page: number): Promise<GhSearchPage> {
@@ -288,8 +348,12 @@ export class HttpGithubClient extends GithubClient {
       'search',
       `/search/repositories?q=${encodeURIComponent(q)}&sort=updated&per_page=100&page=${page}`,
     );
-    const items = (body?.items ?? []).map(mapRepo);
-    return { items, hasMore: items.length === 100 };
+    const { items } = parse(
+      z.object({ items: z.array(z.unknown()) }),
+      body ?? { items: [] },
+      '검색',
+    );
+    return { items: items.map(mapRepo), hasMore: items.length === 100 };
   }
 
   async searchCode(q: string, page: number): Promise<GhSearchPage> {
@@ -297,10 +361,14 @@ export class HttpGithubClient extends GithubClient {
       'code_search',
       `/search/code?q=${encodeURIComponent(q)}&per_page=100&page=${page}`,
     );
-    const raw: Json[] = body?.items ?? [];
+    const { items } = parse(
+      z.object({ items: z.array(z.object({ repository: z.unknown() })) }),
+      body ?? { items: [] },
+      '코드 검색',
+    );
     return {
-      items: raw.map((i) => mapRepo(i.repository)),
-      hasMore: raw.length === 100,
+      items: items.map((i) => mapRepo(i.repository)),
+      hasMore: items.length === 100,
     };
   }
 
@@ -315,30 +383,36 @@ export class HttpGithubClient extends GithubClient {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ query: GRAPHQL, variables: { ids: nodeIds } }),
     });
-    if (body?.errors && !body.data)
-      throw new GithubError(200, 'GH_GRAPHQL', JSON.stringify(body.errors));
-    const nodes: (Json | null)[] = body?.data?.nodes ?? [];
-    return nodes.map((n) =>
-      n?.id
-        ? {
-            githubId: n.databaseId,
-            nodeId: n.id,
-            owner: n.owner.login,
-            name: n.name,
-            description: n.description ?? null,
-            stars: n.stargazerCount,
-            pushedAt: n.pushedAt ?? null,
-            createdAt: n.createdAt ?? null,
-            archived: n.isArchived,
-            fork: n.isFork,
-            topics: (n.repositoryTopics?.nodes ?? []).map(
-              (t: Json) => t.topic.name,
-            ),
-            defaultBranch: n.defaultBranchRef?.name ?? null,
-            headSha: n.defaultBranchRef?.target?.oid ?? null,
-          }
-        : null,
+    const { data, errors } = parse(
+      z.object({
+        data: z.object({ nodes: z.array(z.unknown()) }).nullish(),
+        errors: z.unknown().optional(),
+      }),
+      body,
+      'GraphQL',
     );
+    if (!data) throw new GithubError(200, 'GH_GRAPHQL', JSON.stringify(errors));
+    // 삭제·비공개 저장소는 null, Repository가 아닌 노드는 `{}` — 둘 다 "스냅샷 없음"
+    return data.nodes.map((raw) => {
+      const n = nodeSchema.safeParse(raw);
+      if (!n.success) return null;
+      const v = n.data;
+      return {
+        githubId: v.databaseId,
+        nodeId: v.id,
+        owner: v.owner.login,
+        name: v.name,
+        description: v.description ?? null,
+        stars: v.stargazerCount,
+        pushedAt: v.pushedAt ?? null,
+        createdAt: v.createdAt ?? null,
+        archived: v.isArchived,
+        fork: v.isFork,
+        topics: (v.repositoryTopics?.nodes ?? []).map((t) => t.topic.name),
+        defaultBranch: v.defaultBranchRef?.name ?? null,
+        headSha: v.defaultBranchRef?.target?.oid ?? null,
+      };
+    });
   }
 
   async getTree(owner: string, repo: string, ref: string): Promise<GhTree> {
@@ -347,12 +421,13 @@ export class HttpGithubClient extends GithubClient {
       `/repos/${owner}/${repo}/git/trees/${encodeURIComponent(ref)}?recursive=1`,
     );
     if (!body) throw new GithubError(404, 'GH_404', `${owner}/${repo}`);
+    const t = parse(treeSchema, body, '트리');
     return {
-      sha: body.sha,
-      truncated: !!body.truncated,
-      entries: (body.tree as Json[])
+      sha: t.sha,
+      truncated: t.truncated,
+      entries: t.tree
         .filter((e) => e.type === 'blob')
-        .map((e) => ({ path: e.path, size: e.size ?? 0 })),
+        .map((e) => ({ path: e.path, size: e.size })),
     };
   }
 
@@ -389,17 +464,13 @@ export class HttpGithubClient extends GithubClient {
 
   /** 응답 형식은 문서 기준(`{week,total,days[7]}`, 최신 주부터) — 실제 캡처 전까지 [미검증]. */
   async starHistory(owner: string, repo: string): Promise<StarWeek[]> {
-    const body = await this.json<Json[]>(
+    const body = await this.json(
       'core',
       `/repos/${owner}/${repo}/stargazers/history?per_page=30&page=1`,
       undefined,
       true,
     );
     if (!body) throw new GithubError(404, 'GH_404', `${owner}/${repo}`);
-    return body.map((w) => ({
-      week: Number(w.week),
-      total: Number(w.total),
-      days: (w.days as number[]).map(Number),
-    }));
+    return parse(historySchema, body, 'Star History');
   }
 }
