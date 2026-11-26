@@ -12,9 +12,9 @@ import {
   type Prisma,
   type Repo,
 } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
 import { createHash } from 'node:crypto';
 import { Client } from 'pg';
+import { ensureDemoAdmin, resetDemoBookmarks } from './seed-admin';
 
 const DAY_MS = 86_400_000;
 const DAYS = 60;
@@ -303,27 +303,9 @@ export async function seedDemoFixtures({
     },
   });
 
-  // ── 데모 계정 admin/admin + 북마크 ──
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin' },
-    update: {},
-    create: {
-      email: 'admin',
-      name: '데모 관리자',
-      role: 'ADMIN',
-      passwordHash: await bcrypt.hash('admin', 10),
-    },
-  });
-  const marked = [items[0], items[3], items[9]];
-  await prisma.bookmark.createMany({
-    data: marked.map((it) => ({
-      userId: admin.id,
-      itemId: it.id,
-      // 하나는 저장 후 등급이 바뀐 상태 → "보안 등급 변경" 탭이 비지 않게
-      seenLevel: it.id === items[3].id ? 'SAFE' : it.currentLevel,
-    })),
-    skipDuplicates: true,
-  });
+  // ── 데모 계정 admin/admin + 북마크(운영 시드와 같은 코드) ──
+  await ensureDemoAdmin(prisma);
+  await resetDemoBookmarks(prisma);
 
   // ── ai 요약(kok_ai 롤): 대부분 OK, 일부 정보 부족 ──
   if (ai) {

@@ -22,7 +22,10 @@
     "test:e2e": "jest --config ./test/jest-e2e.json --runInBand",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint:check": "eslint \"{src,test}/**/*.ts\"",
-    "cli": "ts-node src/cli.ts ingest"
+    "cli": "ts-node src/cli.ts ingest",
+    "seed:admin": "ts-node scripts/seed-admin.ts",
+    "seed:demo-reset": "ts-node scripts/seed-admin.ts --reset",
+    "seed:fixtures": "ts-node scripts/seed-demo-fixtures.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
