@@ -494,5 +494,37 @@ describe('search · bookmarks', () => {
         .send({ itemIds: [-1] })
         .expect(400);
     });
+
+    it('데모 계정: ack·삭제는 no-op(공유 계정의 시드 상태 보존) (REVIEW Y6)', async () => {
+      const repo = await createRepo(t.prisma);
+      const item = await createItem(t.prisma, repo.id, {
+        currentLevel: 'DANGER',
+      });
+      const demo = await createUser(t.prisma, {
+        email: 'admin',
+        role: 'ADMIN',
+      });
+      await t.prisma.bookmark.create({
+        data: { userId: demo.id, itemId: item.id, seenLevel: 'SAFE' },
+      });
+      const demoAuth = { Authorization: `Bearer ${await login(t, 'admin')}` };
+
+      await request(t.http())
+        .post('/api/me/bookmarks/security-changes/ack')
+        .set(demoAuth)
+        .expect(204);
+      await request(t.http())
+        .delete(`/api/me/bookmarks/${item.id}`)
+        .set(demoAuth)
+        .expect(204);
+
+      const changes = await request(t.http())
+        .get('/api/me/bookmarks/security-changes')
+        .set(demoAuth);
+      expect((changes.body as { items: unknown[] }).items).toHaveLength(1);
+      expect(
+        await t.prisma.bookmark.count({ where: { userId: demo.id } }),
+      ).toBe(1);
+    });
   });
 });

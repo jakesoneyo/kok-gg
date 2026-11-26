@@ -2,6 +2,7 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import type { Request } from 'express';
 import type { AuthenticatedUser } from '../decorators/current-user.decorator';
+import { DEMO_EMAIL } from '../demo-account';
 import { DomainException } from '../errors/domain-exception';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
@@ -22,7 +23,7 @@ export class DemoReadOnlyGuard implements CanActivate {
     const req = ctx
       .switchToHttp()
       .getRequest<Request & { user?: AuthenticatedUser }>();
-    if (req.user?.email === 'admin' && !SAFE_METHODS.has(req.method)) {
+    if (req.user?.email === DEMO_EMAIL && !SAFE_METHODS.has(req.method)) {
       throw new DomainException(
         403,
         'DEMO_READ_ONLY',

@@ -15,6 +15,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
+import { DEMO_EMAIL } from '../common/demo-account';
 import { BookmarksService } from './bookmarks.service';
 import {
   AckDto,
@@ -52,6 +53,7 @@ export class BookmarksController {
   @HttpCode(204)
   @ApiOperation({ summary: '등급 변경 확인(seenLevel = currentLevel)' })
   async ack(@CurrentUser() u: AuthenticatedUser, @Body() body: AckDto) {
+    if (u.email === DEMO_EMAIL) return; // 공유 데모 계정: 시드된 "등급 변경" 탭을 보존(REVIEW Y6)
     await this.bookmarks.ack(u.id, body.itemIds);
   }
 
@@ -74,6 +76,7 @@ export class BookmarksController {
     @CurrentUser() u: AuthenticatedUser,
     @Param() p: BookmarkItemParamDto,
   ) {
+    if (u.email === DEMO_EMAIL) return; // 공유 데모 계정: 시드된 북마크를 보존(REVIEW Y6)
     await this.bookmarks.remove(u.id, p.itemId);
   }
 }

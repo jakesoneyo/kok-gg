@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Prisma, User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { DEMO_EMAIL } from '../common/demo-account';
 import { DomainException } from '../common/errors/domain-exception';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto } from './dto/login.schema';
@@ -146,7 +147,7 @@ export class AuthService {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
     });
-    return { ...this.toPublicUser(user), isDemo: user.email === 'admin' };
+    return { ...this.toPublicUser(user), isDemo: user.email === DEMO_EMAIL };
   }
 
   private async issueTokenPair(
