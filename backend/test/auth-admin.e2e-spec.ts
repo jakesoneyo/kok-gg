@@ -73,6 +73,38 @@ describe('auth · admin', () => {
     });
   });
 
+  describe('refresh 회전 (REVIEW Y3)', () => {
+    it('같은 refresh 토큰 동시 2요청: 정확히 1건만 회전, 나머지는 재사용으로 거절 + 계열 폐기', async () => {
+      await createUser(t.prisma, {
+        email: 'u@example.com',
+        password: 'password1',
+      });
+      const { refreshToken } = (
+        await post('/api/auth/login', {
+          email: 'u@example.com',
+          password: 'password1',
+        }).expect(200)
+      ).body as { refreshToken: string };
+
+      const results = await Promise.all(
+        [1, 2, 3].map(() => post('/api/auth/refresh', { refreshToken })),
+      );
+      const statuses = results.map((r) => r.status).sort();
+      expect(statuses).toEqual([200, 401, 401]);
+      expect(
+        results
+          .filter((r) => r.status === 401)
+          .map((r) => (r.body as { code: string }).code),
+      ).toEqual(['AUTH_REFRESH_REUSE', 'AUTH_REFRESH_REUSE']);
+
+      // 재사용 탐지로 계열이 모두 폐기돼 유효한 토큰이 남지 않는다.
+      const alive = await t.prisma.refreshToken.count({
+        where: { revokedAt: null },
+      });
+      expect(alive).toBe(0);
+    });
+  });
+
   describe('IT-13 DEMO_ADMIN_READONLY', () => {
     it('데모 관리자: 변경 403 DEMO_READ_ONLY / 조회 200, 일반 ADMIN: 변경 허용', async () => {
       await createUser(t.prisma, {

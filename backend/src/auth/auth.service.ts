@@ -88,18 +88,7 @@ export class AuthService {
         '유효하지 않은 refreshToken입니다.',
       );
     }
-    if (stored.revokedAt) {
-      // 회전 트랜잭션과 별개로 즉시 커밋돼야 한다 — throw 이후 롤백되면 계열 폐기가 없던 일이 된다.
-      await this.prisma.refreshToken.updateMany({
-        where: { familyId: stored.familyId, revokedAt: null },
-        data: { revokedAt: new Date() },
-      });
-      throw new DomainException(
-        401,
-        'AUTH_REFRESH_REUSE',
-        '이미 사용된 refreshToken이 재사용되었습니다.',
-      );
-    }
+    if (stored.revokedAt) await this.rejectReuse(stored.familyId);
     if (stored.expiresAt < new Date()) {
       throw new DomainException(
         401,
@@ -109,16 +98,36 @@ export class AuthService {
     }
 
     // 폐기 + 신규 발급은 원자적으로 — 하나만 반영되면 계열이 끊기거나 유효 토큰이 중복된다.
-    return this.prisma.$transaction(async (tx) => {
-      await tx.refreshToken.update({
-        where: { id: stored.id },
+    // 위의 revokedAt 확인은 동시 요청 사이에서 무력하므로(둘 다 null을 봄), 조건부 updateMany의
+    // count가 진짜 관문이다: 행 잠금 덕에 정확히 한 요청만 1을 받고 나머지는 재사용으로 처리된다.
+    const rotated = await this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.refreshToken.updateMany({
+        where: { id: stored.id, revokedAt: null },
         data: { revokedAt: new Date() },
       });
+      if (count !== 1) return null;
       const user = await tx.user.findUniqueOrThrow({
         where: { id: stored.userId },
       });
       return this.issueTokenPair(user, stored.familyId, tx);
     });
+    return rotated ?? this.rejectReuse(stored.familyId);
+  }
+
+  /**
+   * 폐기된 토큰의 재사용 = 탈취로 간주하고 계열 전체를 폐기한 뒤 401을 던진다.
+   * 회전 트랜잭션과 별개로 즉시 커밋돼야 한다 — throw 이후 롤백되면 계열 폐기가 없던 일이 된다.
+   */
+  private async rejectReuse(familyId: string): Promise<never> {
+    await this.prisma.refreshToken.updateMany({
+      where: { familyId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    throw new DomainException(
+      401,
+      'AUTH_REFRESH_REUSE',
+      '이미 사용된 refreshToken이 재사용되었습니다.',
+    );
   }
 
   async logout(userId: number, refreshToken: string): Promise<void> {
