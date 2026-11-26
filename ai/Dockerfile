@@ -7,5 +7,8 @@ COPY app ./app
 RUN pip install --no-cache-dir .
 COPY alembic.ini ./
 COPY alembic ./alembic
+# 비root 실행(REVIEW Y15) — 컨테이너 탈취 시 권한 최소화
+RUN useradd --system --uid 10001 --no-create-home app
+USER app
 EXPOSE 8000
 CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
