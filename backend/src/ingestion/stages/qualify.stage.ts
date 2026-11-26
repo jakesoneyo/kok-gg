@@ -1,0 +1,116 @@
+// 2단계 qualify: 후보 저장소의 트리를 1회 조회해 Item을 만들고 TRACKED / IGNORED / TOO_LARGE / GONE으로 판정한다.
+// 처리된 후보는 CANDIDATE 집합에서 빠지므로 별도 커서 없이도 재개가 된다(커서는 관측용으로만 기록).
+import { Inject, Injectable } from '@nestjs/common';
+import { GithubError } from '../../github/github.types';
+import { PrismaService } from '../../prisma/prisma.service';
+import { INGEST_CONFIG, type IngestConfig } from '../ingest.config';
+import { RepoInspector } from '../repo-inspector.service';
+import type { Stage, StageContext } from '../stage';
+import { errorMessage, isoDay, isPause, toDate } from '../util';
+
+const BATCH = 50;
+const RECHECK_DAYS = 30;
+
+@Injectable()
+export class QualifyStage implements Stage {
+  readonly name = 'QUALIFY' as const;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly inspector: RepoInspector,
+    @Inject(INGEST_CONFIG) private readonly config: IngestConfig,
+  ) {}
+
+  async run(ctx: StageContext): Promise<void> {
+    // 증거 없음으로 IGNORED 됐어도 30일 뒤 push가 있었으면 재판별(SPEC F1)
+    const cutoff = new Date(
+      toDate(ctx.asOf).getTime() - RECHECK_DAYS * 86_400_000,
+    );
+    await this.prisma.$executeRaw`
+      UPDATE repo SET status = 'CANDIDATE'
+       WHERE status = 'IGNORED' AND ignored_reason = 'NO_EVIDENCE'
+         AND qualified_at < ${cutoff} AND pushed_at > qualified_at`;
+
+    let tracked = await this.prisma.repo.count({
+      where: { status: 'TRACKED' },
+    });
+    const skip = new Set<number>(); // 이번 실행에서 오류로 못 끝낸 저장소(무한 루프 방지)
+    let lastRepoId = 0;
+
+    for (;;) {
+      // 스타 많은 후보부터 — 상한(MAX_TRACKED_REPOS)에 걸리면 낮은 스타가 밀려난다
+      const batch = await this.prisma.repo.findMany({
+        where: { status: 'CANDIDATE', id: { notIn: [...skip] } },
+        orderBy: [{ stars: 'desc' }, { id: 'asc' }],
+        take: BATCH,
+      });
+      if (!batch.length) return;
+
+      for (const repo of batch) {
+        if (tracked >= this.config.maxTrackedRepos) {
+          ctx.add('capped', 1);
+          skip.add(repo.id);
+          continue;
+        }
+        try {
+          const out = await this.inspector.inspect(repo, 'HEAD');
+          const now = new Date();
+          if (out.tooLarge) {
+            await this.prisma.repo.update({
+              where: { id: repo.id },
+              data: { status: 'TOO_LARGE', qualifiedAt: now },
+            });
+          } else {
+            // 마켓플레이스가 이미 이 저장소에 항목을 귀속시켰다면(github/git-subdir 소스) 그것도 증거
+            const hasItems =
+              (await this.prisma.item.count({
+                where: { repoId: repo.id, status: 'ACTIVE' },
+              })) > 0;
+            if (hasItems) {
+              tracked += 1;
+              await this.prisma.repo.update({
+                where: { id: repo.id },
+                data: {
+                  status: 'TRACKED',
+                  qualifiedAt: now,
+                  trackedSince: now,
+                },
+              });
+            } else {
+              await this.prisma.repo.update({
+                where: { id: repo.id },
+                data: {
+                  status: 'IGNORED',
+                  ignoredReason: 'NO_EVIDENCE',
+                  qualifiedAt: now,
+                },
+              });
+            }
+          }
+          ctx.add('processed');
+        } catch (e) {
+          if (e instanceof GithubError && e.status === 404) {
+            await this.prisma.repo.update({
+              where: { id: repo.id },
+              data: { status: 'GONE' },
+            });
+            await this.prisma.item.updateMany({
+              where: { repoId: repo.id },
+              data: { status: 'REMOVED' },
+            });
+            ctx.add('processed');
+          } else if (e instanceof GithubError) {
+            skip.add(repo.id);
+            await ctx.failure(e.code, errorMessage(e), { repoId: repo.id });
+          } else {
+            // PAUSED(레이트리밋)는 지금까지의 진행을 커서로 남기고 올린다. DB 오류 등은 그대로 단계 실패
+            if (isPause(e)) await ctx.commit({ lastRepoId, paused: true });
+            throw e;
+          }
+        }
+        lastRepoId = repo.id;
+      }
+      await ctx.commit({ lastRepoId, day: isoDay(new Date()) });
+    }
+  }
+}
