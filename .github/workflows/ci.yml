@@ -1,0 +1,125 @@
+# 4잡: backend / ai / frontend / migrations-coexist.
+# GitHub 호스트 러너엔 Docker가 있어 Testcontainers가 별도 서비스 없이 동작한다.
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      # runboard에서 겪은 npm 10의 lockfile 오판(@emnapi/* EUSAGE) 회피 — backend/Dockerfile 참고.
+      - run: npm install -g npm@11.6.2
+      - run: npm ci
+      - run: npm run lint:check
+      - run: npm test # 단위 + 통합(Testcontainers: IT-12 권한 경계)
+      - run: npm run build
+
+  ai:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: ai/pyproject.toml
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: pytest
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+
+  # Prisma(public)와 Alembic(ai)가 한 DB에서 어떤 순서로 적용돼도 공존함을 증명한다(DATA-MODEL.md 8장).
+  migrations-coexist:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      APP_URL: postgresql://kok_app:app-pw@localhost:5432
+      AI_URL: postgresql+psycopg://kok_ai:ai-pw@localhost:5432
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: npm install -g npm@11.6.2
+      - run: npm ci
+        working-directory: backend
+      - run: pip install -e ai
+
+      - name: DB 2개 생성 + bootstrap (롤은 클러스터 전역이라 두 번째는 재사용)
+        run: |
+          psql -c 'CREATE DATABASE kok_a' -c 'CREATE DATABASE kok_b'
+          for db in kok_a kok_b; do
+            psql -d $db -v ON_ERROR_STOP=1 -v app_password=app-pw -v ai_password=ai-pw -f infra/db/bootstrap.sql
+          done
+
+      - name: 순서 A — Prisma → Alembic
+        run: |
+          (cd backend && DIRECT_URL=$APP_URL/kok_a npx prisma migrate deploy)
+          (cd ai && AI_DATABASE_URL=$AI_URL/kok_a alembic upgrade head)
+          psql -d kok_a -v ON_ERROR_STOP=1 -f infra/db/check-contract.sql
+
+      - name: 순서 B(새 DB) — Alembic → Prisma
+        run: |
+          (cd ai && AI_DATABASE_URL=$AI_URL/kok_b alembic upgrade head)
+          (cd backend && DIRECT_URL=$APP_URL/kok_b npx prisma migrate deploy)
+          psql -d kok_b -v ON_ERROR_STOP=1 -f infra/db/check-contract.sql
+
+      - name: 두 순서 모두 같은 권한 경계
+        run: |
+          for db in kok_a kok_b; do
+            PGUSER=kok_ai PGPASSWORD=ai-pw psql -d $db -v ON_ERROR_STOP=1 -c 'SELECT 1 FROM public.item'
+            ! PGUSER=kok_ai PGPASSWORD=ai-pw psql -d $db -c 'SELECT 1 FROM public.bookmark'
+            ! PGUSER=kok_app PGPASSWORD=app-pw psql -d $db -c 'SELECT 1 FROM ai.item_summary'
+          done
+
+      - name: ai-contract.sql 재생성 diff가 비어야 함
+        run: |
+          (cd ai && alembic upgrade head --sql > /tmp/ai-contract.sql)
+          diff /tmp/ai-contract.sql backend/test/fixtures/ai-contract.sql

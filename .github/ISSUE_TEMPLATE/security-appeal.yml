@@ -1,0 +1,36 @@
+# 보안 등급 오탐 신고 양식. 프론트 "오탐 신고" 링크가 ?item_id=&fingerprint= 로 필드를 미리 채운다.
+name: 보안 등급 오탐 신고
+description: kok.gg의 위험 신호 탐지 결과가 잘못이라고 생각되면 알려주세요.
+title: "[오탐 신고] "
+labels: ["security-appeal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        kok.gg의 위험 신호 탐지는 규칙 기반이며 안전을 보증하지 않습니다. 신고는 관리자가 검토한 뒤 예외 처리(Override)될 수 있습니다.
+  - type: input
+    id: item_id
+    attributes:
+      label: 항목 ID
+      description: 상세 화면의 항목 번호입니다(링크로 들어오면 자동 입력됩니다).
+    validations:
+      required: true
+  - type: input
+    id: fingerprint
+    attributes:
+      label: 탐지 신호 Fingerprint
+      description: 64자리 16진수. 링크로 들어오면 자동 입력됩니다.
+    validations:
+      required: true
+  - type: textarea
+    id: reason
+    attributes:
+      label: 오탐이라고 생각하는 이유
+      description: 해당 코드가 왜 위험하지 않은지 설명해 주세요(10자 이상).
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 근거 링크·코드
+      description: 저장소 소유자 확인, 관련 코드 줄 링크 등.
