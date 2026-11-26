@@ -1,5 +1,5 @@
 // 관리자 콘솔: 수집 실행·데이터 품질 이슈·보안 Override·AI 사용량.
-// 데모 관리자(읽기 전용 운영)이면 변경 버튼을 비활성화하고 안내한다 — 서버의 403 DEMO_READ_ONLY 가 진짜 방어.
+// 데모 관리자(읽기 전용이 기본 — 서버 가드와 같은 fail-closed, 명시적 "false"일 때만 해제)이면 변경 버튼을 비활성화하고 안내한다 — 서버의 403 DEMO_READ_ONLY 가 진짜 방어.
 import { useState, type FormEvent } from "react";
 import {
   useCreateOverride,
@@ -18,7 +18,7 @@ import { describeError } from "../lib/errors";
 import { overrideInputSchema } from "../shared/schemas";
 import { isDemoUser, useAuth } from "../store/auth";
 
-const READ_ONLY_ENV = import.meta.env.VITE_DEMO_ADMIN_READONLY === "true";
+const READ_ONLY_ENV = import.meta.env.VITE_DEMO_ADMIN_READONLY !== "false";
 const when = (iso: string | null) => (iso ? iso.slice(0, 16).replace("T", " ") : "–");
 
 function MutationError({ error }: { error: unknown }) {

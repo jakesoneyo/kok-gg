@@ -7,14 +7,18 @@ import { DomainException } from '../errors/domain-exception';
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 /**
- * 면접관이 누구나 최고 권한으로 로그인할 수 있으므로, `DEMO_ADMIN_READONLY=true`이면
- * email==='admin' 계정의 비-GET 요청은 서버에서 403으로 거절한다(프론트의 버튼 비활성화는 UX일 뿐).
- * 같은 ADMIN이라도 다른 계정은 통과 — 데모 계정만 좁게 막는다. 환경변수는 요청 시점에 읽어 테스트가 토글할 수 있다.
+ * 면접관이 누구나 최고 권한으로 로그인할 수 있으므로, `DEMO_ADMIN_READONLY`가 명시적 `false`가 아니면
+ * (미설정·오타 포함) email==='admin' 계정의 비-GET 요청은 서버에서 403으로 거절한다.
+ * fail-closed인 이유: 비밀번호가 공개인 계정이라 설정 누락이 곧 "누구나 보안 Override 가능"이 된다.
+ * 프론트의 버튼 비활성화는 UX일 뿐. 같은 ADMIN이라도 다른 계정은 통과 — 데모 계정만 좁게 막는다.
+ * 환경변수는 요청 시점에 읽어 테스트가 토글할 수 있다.
+ *
+ * @throws DomainException 403 DEMO_READ_ONLY
  */
 @Injectable()
 export class DemoReadOnlyGuard implements CanActivate {
   canActivate(ctx: ExecutionContext): boolean {
-    if (process.env.DEMO_ADMIN_READONLY !== 'true') return true;
+    if (process.env.DEMO_ADMIN_READONLY === 'false') return true;
     const req = ctx
       .switchToHttp()
       .getRequest<Request & { user?: AuthenticatedUser }>();

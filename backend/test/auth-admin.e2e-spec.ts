@@ -24,10 +24,10 @@ describe('auth · admin', () => {
   afterAll(() => t.app.close());
   beforeEach(async () => {
     await resetDb(t.prisma);
-    delete process.env.DEMO_ADMIN_READONLY;
+    process.env.DEMO_ADMIN_READONLY = 'false';
   });
   afterEach(() => {
-    delete process.env.DEMO_ADMIN_READONLY;
+    process.env.DEMO_ADMIN_READONLY = 'false';
   });
 
   describe('IT-14 데모 로그인', () => {
@@ -103,7 +103,7 @@ describe('auth · admin', () => {
       expect(created.body).toMatchObject({ dispatched: false });
 
       // 플래그가 꺼져 있으면 데모 계정도 통과(로컬 개발).
-      delete process.env.DEMO_ADMIN_READONLY;
+      process.env.DEMO_ADMIN_READONLY = 'false';
       await request(t.http())
         .patch('/api/admin/data-quality/issues/1')
         .set(auth(demo))

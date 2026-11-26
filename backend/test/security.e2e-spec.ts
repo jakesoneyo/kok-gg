@@ -24,10 +24,10 @@ describe('security API', () => {
   afterAll(() => t.app.close());
   beforeEach(async () => {
     await resetDb(t.prisma);
-    delete process.env.DEMO_ADMIN_READONLY;
+    process.env.DEMO_ADMIN_READONLY = 'false';
   });
   afterEach(() => {
-    delete process.env.DEMO_ADMIN_READONLY;
+    process.env.DEMO_ADMIN_READONLY = 'false';
   });
 
   /** 원격 파이프 실행(R01, DANGER) 1건을 가진 분석 완료 항목을 만든다. */

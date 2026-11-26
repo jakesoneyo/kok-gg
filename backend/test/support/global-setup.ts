@@ -15,4 +15,6 @@ export default async function globalSetup(): Promise<void> {
   process.env.NODE_ENV = 'test';
   // 전역 한도(120/분)는 대량 순회 테스트를 막으므로 끄고, 한도 자체는 IT-15 스위트가 따로 검증한다.
   process.env.THROTTLE_DEFAULT_LIMIT = '100000';
+  // 가드가 fail-closed라 e2e 기본은 명시적으로 해제한다(읽기 전용은 IT-13이 켠다).
+  process.env.DEMO_ADMIN_READONLY = 'false';
 }
