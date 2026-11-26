@@ -22,6 +22,9 @@ const baseName = (p: string) => p.slice(p.lastIndexOf('/') + 1);
  */
 export function isConfigJson(rel: string, root: string): boolean {
   if (JSON_NAMES.has(baseName(rel))) return true;
+  // 심층 방어: 호출부가 root를 '.claude'로 넘기지 않아도 경로 자체로 프로젝트 훅 설정을 알아본다(놓치면 SAFE로 샌다)
+  if (rel === '.claude/settings.json' || rel.endsWith('/.claude/settings.json'))
+    return true;
   return rel === 'settings.json' && baseName(root) === '.claude';
 }
 const SCRIPT_EXT = /\.(?:sh|bash|zsh|py|js|ts|mjs|cjs)$/;

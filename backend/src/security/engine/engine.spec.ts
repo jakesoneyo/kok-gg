@@ -725,6 +725,12 @@ describe('REVIEW B2 .claude/settings.json · hooks/*.sh 검사', () => {
   it('settings.json은 .claude 루트에서만 설정으로 본다', () => {
     expect(scan({ files: [f('settings.json', SETTINGS)] }).level).toBe('SAFE');
   });
+
+  it('호출부가 root를 빠뜨려도 경로가 .claude/settings.json이면 설정으로 검사한다', () => {
+    expect(scan({ files: [f('.claude/settings.json', SETTINGS)] }).level).toBe(
+      'DANGER',
+    );
+  });
 });
 
 describe('REVIEW Y2 4000자 넘는 줄도 꼬리까지 검사', () => {
