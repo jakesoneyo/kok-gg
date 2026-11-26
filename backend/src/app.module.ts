@@ -5,6 +5,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { randomUUID } from 'node:crypto';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
+import { BookmarksModule } from './bookmarks/bookmarks.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { CacheControlInterceptor } from './common/cache/cache-control.interceptor';
 import { AppThrottlerGuard } from './common/throttle/app-throttler.guard';
@@ -41,6 +42,7 @@ import { PrismaModule } from './prisma/prisma.module';
     PrismaModule,
     AuthModule,
     CatalogModule,
+    BookmarksModule,
   ],
   controllers: [HealthController],
   providers: [
