@@ -142,6 +142,27 @@ describe('computeTrendScore — 불변식', () => {
     );
   });
 
+  it('REVIEW Y1: 언스타로 음수 일이 섞여도 집중도 ≤ 1, 감점 배율 ≥ floor, 점수 ≥ 0', () => {
+    // G=5, 최대 10 → 보정 전 c=2.5 → 배율 음수가 되던 케이스
+    const r = computeTrendScore([10, -8, 1, 1, 1, 0, 0], {
+      ...base,
+      totalStars: 500,
+    });
+    expect(r!.concentration).toBe(1);
+    expect(r!.penalty).toBeCloseTo(TREND_PARAMS.floor);
+    expect(r!.score).toBeGreaterThan(0);
+  });
+
+  it('REVIEW Y1: 직전 기간 합이 -α 이하여도 가속도 분모는 양수(클램프 상한)', () => {
+    const r = computeTrendScore(
+      series([-5, -5, -5, -5, -5, -5, -5], [3, 3, 3, 3, 3, 3, 3]),
+      { ...base, totalStars: 500 },
+    );
+    expect(r!.acceleration).toBeGreaterThan(0);
+    expect(r!.acceleration).toBeLessThanOrEqual(TREND_PARAMS.accelMax);
+    expect(r!.score).toBeGreaterThan(0);
+  });
+
   it('TA-6: 집중도 c=0.6 → pen 1, c=1.0 → pen 0.4', () => {
     // G=10, 최대 6 → c=0.6 (활동일 3)
     const r = computeTrendScore([6, 2, 2, 0, 0, 0, 0], {

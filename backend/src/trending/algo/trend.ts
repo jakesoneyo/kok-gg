@@ -60,7 +60,10 @@ export function concentrationPenalty(
 }
 
 /**
- * 자격 미달·데이터 부족이면 null(순위 제외).
+ * 자격 미달·데이터 부족이면 null(순위 제외). 왜 순수 함수: 같은 입력이면 같은 점수여야 재실행해도 순위가 안 흔들린다.
+ * @param ctx 기간·기준일·누적 스타·생성일
+ * @param params 테스트에서 파라미터를 바꿔 볼 수 있게 주입
+ * @returns 점수와 구성 요소, 자격 미달이면 null
  * @param series 일일 증가량, 오래된 날 → asOf. 길이는 최대 2×기간(직전 기간 포함); 짧으면 모자란 날은 모름 취급.
  */
 export function computeTrendScore(
@@ -91,13 +94,18 @@ export function computeTrendScore(
       ? 1
       : Math.min(
           Math.max(
-            (gain + params.alpha) / (sum(prev) + params.alpha),
+            // 언스타로 직전 합이 음수가 돼도 분모가 0 이하가 되지 않게(REVIEW Y1)
+            (gain + params.alpha) / (Math.max(sum(prev), 0) + params.alpha),
             params.accelMin,
           ),
           params.accelMax,
         );
 
-  const concentration = w >= 7 ? Math.max(...cur.map((x) => x ?? 0)) / gain : 0;
+  // 언스타로 음수 일이 섞이면 max/gain이 1을 넘어 감점 배율이 음수가 된다 → [0,1]로 고정
+  const concentration =
+    w >= 7
+      ? Math.min(Math.max(Math.max(...cur.map((x) => x ?? 0)) / gain, 0), 1)
+      : 0;
   const penalty = w >= 7 ? concentrationPenalty(concentration, params) : 1;
 
   const score =
@@ -112,7 +120,10 @@ export interface RankInput {
   gain: number;
 }
 
-/** score desc → gain desc → repoId asc. 동률도 결정적이라 재실행해도 순위가 흔들리지 않는다. */
+/**
+ * score desc → gain desc → repoId asc. 동률도 결정적이라 재실행해도 순위가 흔들리지 않는다.
+ * @returns 1부터 시작하는 rank가 붙은 정렬 사본
+ */
 export function rankTrendScores<T extends RankInput>(
   entries: readonly T[],
 ): (T & { rank: number })[] {

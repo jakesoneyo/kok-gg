@@ -205,9 +205,9 @@ Gp     = Σ gain(d), d ∈ P (known 값만)          # 직전 기간 증가량
 S0     = max(S_t − G, 0)                         # 기간 시작 시점 스타
 
 N      = G / ( w · √(S0 + K) )                   # 규모 보정 일평균 속도
-A      = clamp( (G + α) / (Gp + α), Amin, Amax ) # 평활 가속도
+A      = clamp( (G + α) / (max(Gp,0) + α), Amin, Amax ) # 평활 가속도 (언스타로 Gp<0이어도 분모 > 0)
          단, 저장소 나이 < 2w 이거나 coverage(P) < 0.8 이면 A = 1
-c      = max_{d∈W} gain(d) / G                   # 급등 집중도 (w ≥ 7)
+c      = clamp( max_{d∈W} gain(d) / G, 0, 1 )    # 급등 집중도 (w ≥ 7). 음수 일(언스타)이 섞여도 ≤ 1
 pen    = 1                                  if w = 1 or c ≤ τ
        = 1 − (1 − floor) · (c − τ) / (1 − τ) otherwise
 score  = round( 1000 · N · A^β · pen , 4 )
