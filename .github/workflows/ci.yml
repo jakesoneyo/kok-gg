@@ -57,6 +57,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm run lint
+      - run: npm test
       - run: npm run build
 
   # Prisma(public)와 Alembic(ai)가 한 DB에서 어떤 순서로 적용돼도 공존함을 증명한다(DATA-MODEL.md 8장).
