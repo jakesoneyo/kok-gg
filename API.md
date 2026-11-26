@@ -350,7 +350,7 @@ Zod: z.object({ sort, kind, level, limit, cursor }).strict()
 | POST   | `/internal/search/answer` | `{ q, kind?, level? }`                              | `{ answerKo, citedItemIds, degraded, reason }`                                                                                                               |
 | POST   | `/internal/jobs/sync`     | `{ maxItems: 1~50 }`(기본 20)                       | `{ processed, insufficient, failed, remaining, budgetExhausted, indexVersion }` — 요약·임베딩·검색 문서 갱신 후 BM25 재구축                                  |
 
-- 토큰 불일치 401(본문 없음). 배치 클라이언트: 타임아웃 120초, 재시도 3회(무료 티어 기상 대기), `remaining = 0` 또는 `budgetExhausted`까지 반복.
+- 토큰 불일치 401(본문 없음). 배치 클라이언트: 시도당 타임아웃 300초(한 번에 LLM 최대 50건), 연결 실패·타임아웃·5xx는 5·15·45초 간격으로 최대 3회 재시도(무료 티어 기상 대기, 4xx는 즉시 실패), `remaining = 0` 또는 `budgetExhausted`까지 반복.
 - FastAPI의 OpenAPI(`/docs`)는 운영에서 비활성(`docs_url=None`), 로컬에서만 노출.
 
 ---
