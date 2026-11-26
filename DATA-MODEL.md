@@ -59,21 +59,97 @@ datasource db {
 }
 
 // ───────── enums ─────────
-enum Role             { USER ADMIN }
-enum RepoStatus       { CANDIDATE TRACKED IGNORED GONE TOO_LARGE }
-enum DiscoverySource  { TOPIC_SEARCH CODE_SEARCH AWESOME_SEED MARKETPLACE_REF MANUAL }
-enum ItemKind         { PLUGIN SKILL HOOK }
-enum ItemSourceType   { IN_REPO GITHUB_REPO GIT_SUBDIR UNSUPPORTED }
-enum ItemStatus       { ACTIVE REMOVED }
-enum RiskLevel        { SAFE CAUTION DANGER }
-enum ScanStatus       { ANALYZED UNSUPPORTED TOO_LARGE ERROR }
-enum TrendWindow      { D1 D7 D30 }
-enum IngestionTrigger { CRON MANUAL }
-enum RunStatus        { REQUESTED RUNNING SUCCEEDED PARTIAL FAILED }
-enum StageName        { DISCOVER QUALIFY SNAPSHOT STAR_HISTORY FETCH_CONTENT SECURITY_SCAN AI_SYNC TRENDING QUALITY }
-enum StageStatus      { PENDING RUNNING DONE PAUSED FAILED SKIPPED }
-enum DataQualityKind  { STAR_SOURCE_MISMATCH STAR_TOTAL_MISMATCH EXTERNAL_MISMATCH STAR_ANOMALY OFFICIAL_HISTORY_FAILED }
-enum IssueStatus      { OPEN RESOLVED IGNORED }
+enum Role {
+  USER
+  ADMIN
+}
+enum RepoStatus {
+  CANDIDATE
+  TRACKED
+  IGNORED
+  GONE
+  TOO_LARGE
+}
+enum DiscoverySource {
+  TOPIC_SEARCH
+  CODE_SEARCH
+  AWESOME_SEED
+  MARKETPLACE_REF
+  MANUAL
+}
+enum ItemKind {
+  PLUGIN
+  SKILL
+  HOOK
+}
+enum ItemSourceType {
+  IN_REPO
+  GITHUB_REPO
+  GIT_SUBDIR
+  UNSUPPORTED
+}
+enum ItemStatus {
+  ACTIVE
+  REMOVED
+}
+enum RiskLevel {
+  SAFE
+  CAUTION
+  DANGER
+}
+enum ScanStatus {
+  ANALYZED
+  UNSUPPORTED
+  TOO_LARGE
+  ERROR
+}
+enum TrendWindow {
+  D1
+  D7
+  D30
+}
+enum IngestionTrigger {
+  CRON
+  MANUAL
+}
+enum RunStatus {
+  REQUESTED
+  RUNNING
+  SUCCEEDED
+  PARTIAL
+  FAILED
+}
+enum StageName {
+  DISCOVER
+  QUALIFY
+  SNAPSHOT
+  STAR_HISTORY
+  FETCH_CONTENT
+  SECURITY_SCAN
+  AI_SYNC
+  TRENDING
+  QUALITY
+}
+enum StageStatus {
+  PENDING
+  RUNNING
+  DONE
+  PAUSED
+  FAILED
+  SKIPPED
+}
+enum DataQualityKind {
+  STAR_SOURCE_MISMATCH
+  STAR_TOTAL_MISMATCH
+  EXTERNAL_MISMATCH
+  STAR_ANOMALY
+  OFFICIAL_HISTORY_FAILED
+}
+enum IssueStatus {
+  OPEN
+  RESOLVED
+  IGNORED
+}
 
 // ───────── 사용자 ─────────
 model User {
@@ -192,7 +268,7 @@ model Item {
   trendRank7d    Int?           @map("trend_rank_7d")                      // 소속 저장소 7일 순위(trend_score D7 복사), 미자격 null
   prevTrendRank7d Int?          @map("prev_trend_rank_7d")                 // 직전 as_of의 7일 순위, null = NEW(또는 미자격)
   repoStars      Int            @default(0) @map("repo_stars")
-  repoPushedAt   DateTime       @default(dbgenerated("'1970-01-01'::timestamp")) @map("repo_pushed_at") // NOT NULL → keyset 단순화
+  repoPushedAt   DateTime       @default("1970-01-01T00:00:00.000Z") @map("repo_pushed_at") // NOT NULL → keyset 단순화
   firstSeenAt    DateTime       @default(now()) @map("first_seen_at")
   updatedAt      DateTime       @updatedAt @map("updated_at")
 
@@ -564,8 +640,11 @@ ORDER BY key DESC, id DESC  LIMIT take+1     -- +1로 nextCursor 존재 판단(C
 ## 7. `infra/db/bootstrap.sql` (DB 소유자 1회 실행)
 
 ```sql
-CREATE ROLE kok_app LOGIN PASSWORD :'app_password';
-CREATE ROLE kok_ai  LOGIN PASSWORD :'ai_password';
+-- 롤은 클러스터 전역 → 없을 때만 생성(\gexec). 같은 클러스터의 두 번째 DB에서도 재실행 가능(CI 역순 검증)
+SELECT format('CREATE ROLE kok_app LOGIN PASSWORD %L', :'app_password')
+ WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'kok_app') \gexec
+SELECT format('CREATE ROLE kok_ai LOGIN PASSWORD %L', :'ai_password')
+ WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'kok_ai') \gexec
 CREATE EXTENSION IF NOT EXISTS vector;             -- Neon: 확장 생성 권한 있는 롤로 실행 [미검증: 콘솔 생성 롤 권한]
 CREATE SCHEMA IF NOT EXISTS ai AUTHORIZATION kok_ai;
 

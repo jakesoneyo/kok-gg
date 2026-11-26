@@ -1,0 +1,440 @@
+// 정본: ../DATA-MODEL.md 3장. 스키마 변경은 문서와 함께 고친다.
+// Prisma 7: datasource URL은 prisma.config.ts(CLI)와 PrismaService의 @prisma/adapter-pg(런타임)가 담당(runboard 패턴).
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────── enums ─────────
+enum Role {
+  USER
+  ADMIN
+}
+
+enum RepoStatus {
+  CANDIDATE
+  TRACKED
+  IGNORED
+  GONE
+  TOO_LARGE
+}
+
+enum DiscoverySource {
+  TOPIC_SEARCH
+  CODE_SEARCH
+  AWESOME_SEED
+  MARKETPLACE_REF
+  MANUAL
+}
+
+enum ItemKind {
+  PLUGIN
+  SKILL
+  HOOK
+}
+
+enum ItemSourceType {
+  IN_REPO
+  GITHUB_REPO
+  GIT_SUBDIR
+  UNSUPPORTED
+}
+
+enum ItemStatus {
+  ACTIVE
+  REMOVED
+}
+
+enum RiskLevel {
+  SAFE
+  CAUTION
+  DANGER
+}
+
+enum ScanStatus {
+  ANALYZED
+  UNSUPPORTED
+  TOO_LARGE
+  ERROR
+}
+
+enum TrendWindow {
+  D1
+  D7
+  D30
+}
+
+enum IngestionTrigger {
+  CRON
+  MANUAL
+}
+
+enum RunStatus {
+  REQUESTED
+  RUNNING
+  SUCCEEDED
+  PARTIAL
+  FAILED
+}
+
+enum StageName {
+  DISCOVER
+  QUALIFY
+  SNAPSHOT
+  STAR_HISTORY
+  FETCH_CONTENT
+  SECURITY_SCAN
+  AI_SYNC
+  TRENDING
+  QUALITY
+}
+
+enum StageStatus {
+  PENDING
+  RUNNING
+  DONE
+  PAUSED
+  FAILED
+  SKIPPED
+}
+
+enum DataQualityKind {
+  STAR_SOURCE_MISMATCH
+  STAR_TOTAL_MISMATCH
+  EXTERNAL_MISMATCH
+  STAR_ANOMALY
+  OFFICIAL_HISTORY_FAILED
+}
+
+enum IssueStatus {
+  OPEN
+  RESOLVED
+  IGNORED
+}
+
+// ───────── 사용자 ─────────
+model User {
+  id            Int                @id @default(autoincrement())
+  email         String             @unique // 데모 'admin' 리터럴 포함(로그인 스키마만 형식 우회)
+  passwordHash  String             @map("password_hash")
+  name          String
+  role          Role               @default(USER)
+  createdAt     DateTime           @default(now()) @map("created_at")
+  refreshTokens RefreshToken[]
+  bookmarks     Bookmark[]
+  overrides     SecurityOverride[] @relation("OverrideCreatedBy")
+
+  @@map("app_user")
+}
+
+model RefreshToken {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  tokenHash String    @unique @map("token_hash") @db.Char(64)
+  familyId  String    @map("family_id")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("refresh_token")
+}
+
+// ───────── 카탈로그 ─────────
+model Repo {
+  id               Int             @id @default(autoincrement())
+  githubId         BigInt          @unique @map("github_id")
+  nodeId           String          @unique @map("node_id") // GraphQL nodes(ids:) 배치 스냅샷용
+  owner            String
+  name             String
+  fullNameLower    String          @unique @map("full_name_lower") // 'owner/name' 소문자 — URL 조회 키
+  description      String?
+  defaultBranch    String?         @map("default_branch")
+  headSha          String?         @map("head_sha") @db.Char(40) // 최신 스냅샷의 기본 브랜치 커밋
+  contentSha       String?         @map("content_sha") @db.Char(40) // 마지막으로 파일을 받아 검사한 커밋
+  stars            Int             @default(0)
+  pushedAt         DateTime?       @map("pushed_at")
+  ghCreatedAt      DateTime?       @map("gh_created_at")
+  archived         Boolean         @default(false)
+  isFork           Boolean         @default(false) @map("is_fork")
+  topics           String[]
+  status           RepoStatus      @default(CANDIDATE)
+  discoveredVia    DiscoverySource @map("discovered_via")
+  ignoredReason    String?         @map("ignored_reason")
+  truncated        Boolean         @default(false) // MAX_ITEMS_PER_REPO 초과
+  sparkline7d      Json            @default("[null,null,null,null,null,null,null]") @map("sparkline_7d") // 최근 7일 일일 증가량(오래된 날→오늘, 모름=null). 배치 trending 단계가 기록, 목록 응답용(정렬 키 아님)
+  firstSeenAt      DateTime        @default(now()) @map("first_seen_at")
+  qualifiedAt      DateTime?       @map("qualified_at")
+  trackedSince     DateTime?       @map("tracked_since")
+  starBackfilledAt DateTime?       @map("star_backfilled_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  items         Item[]
+  marketplaces  Marketplace[]
+  starDays      RepoStarDay[]
+  trendScores   TrendScore[]
+  qualityIssues DataQualityIssue[]
+
+  @@index([status, stars(sort: Desc)]) // Tracked 상한 선별(스타순), 관리자 목록
+  @@index([status, qualifiedAt]) // IGNORED 30일 경과 재판별 대상
+  @@map("repo")
+}
+
+model Marketplace {
+  id          Int                @id @default(autoincrement())
+  repoId      Int                @map("repo_id")
+  path        String // marketplace.json이 있는 마켓플레이스 루트('' = 저장소 루트)
+  name        String
+  ownerName   String?            @map("owner_name")
+  pluginCount Int                @default(0) @map("plugin_count")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+  repo        Repo               @relation(fields: [repoId], references: [id])
+  entries     MarketplaceEntry[]
+
+  @@unique([repoId, path])
+  @@map("marketplace")
+}
+
+model MarketplaceEntry {
+  marketplaceId Int         @map("marketplace_id")
+  entryName     String      @map("entry_name")
+  itemId        Int         @map("item_id")
+  rawSource     Json        @map("raw_source") // 원본 source 객체(분석·디버깅용)
+  marketplace   Marketplace @relation(fields: [marketplaceId], references: [id], onDelete: Cascade)
+  item          Item        @relation(fields: [itemId], references: [id])
+
+  @@id([marketplaceId, entryName])
+  @@index([itemId]) // 상세 화면 "등록된 마켓플레이스" 조회
+  @@map("marketplace_entry")
+}
+
+model Item {
+  id              Int            @id @default(autoincrement())
+  repoId          Int            @map("repo_id")
+  kind            ItemKind
+  path            String // 저장소 내 디렉터리('' = 루트). UNSUPPORTED는 'entry:{name}'
+  name            String
+  description     String?
+  sourceType      ItemSourceType @map("source_type")
+  components      Json           @default("{}") // {skills, hooks, mcpServers, commands, agents, monitors, bin} 개수
+  hasExternalMcp  Boolean        @default(false) @map("has_external_mcp")
+  status          ItemStatus     @default(ACTIVE)
+  currentScanId   Int?           @unique @map("current_scan_id")
+  currentLevel    RiskLevel?     @map("current_level") // Override 반영 등급. null = 미분석/분석 불가
+  levelChangedAt  DateTime?      @map("level_changed_at")
+  // ── 카탈로그 정렬용 비정규화(배치가 집합 UPDATE로 갱신, 6장) ──
+  trendScore7d    Float          @default(0) @map("trend_score_7d") // 소속 저장소 7일 점수, 미자격 0
+  trendRank7d     Int?           @map("trend_rank_7d") // 소속 저장소 7일 순위(trend_score D7 복사), 미자격 null
+  prevTrendRank7d Int?           @map("prev_trend_rank_7d") // 직전 as_of의 7일 순위, null = NEW(또는 미자격)
+  repoStars       Int            @default(0) @map("repo_stars")
+  repoPushedAt    DateTime       @default("1970-01-01T00:00:00.000Z") @map("repo_pushed_at") // NOT NULL → keyset 단순화
+  firstSeenAt     DateTime       @default(now()) @map("first_seen_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  repo        Repo               @relation(fields: [repoId], references: [id])
+  currentScan SecurityScan?      @relation("CurrentScan", fields: [currentScanId], references: [id])
+  scans       SecurityScan[]     @relation("ItemScans")
+  overrides   SecurityOverride[]
+  bookmarks   Bookmark[]
+  sourceDoc   ItemSourceDoc?
+  entries     MarketplaceEntry[]
+
+  @@unique([repoId, kind, path]) // 자연키 — upsert 멱등성
+  // 카탈로그 정렬 4종 × (kind 필터 유무). level 필터는 잔여 조건(6장 근거)
+  @@index([status, trendScore7d(sort: Desc), id(sort: Desc)])
+  @@index([status, kind, trendScore7d(sort: Desc), id(sort: Desc)])
+  @@index([status, repoStars(sort: Desc), id(sort: Desc)])
+  @@index([status, kind, repoStars(sort: Desc), id(sort: Desc)])
+  @@index([status, repoPushedAt(sort: Desc), id(sort: Desc)])
+  @@index([status, kind, repoPushedAt(sort: Desc), id(sort: Desc)])
+  @@index([status, firstSeenAt(sort: Desc), id(sort: Desc)])
+  @@index([status, kind, firstSeenAt(sort: Desc), id(sort: Desc)])
+  @@index([repoId]) // 저장소 → 항목 묶음 조회(트렌딩 카드·저장소 상세)
+  @@map("item")
+}
+
+model ItemSourceDoc {
+  itemId        Int      @id @map("item_id")
+  path          String // 원문 파일 경로(SKILL.md / README.md …)
+  content       String // 64KB 절단
+  contentSha256 String   @map("content_sha256") @db.Char(64)
+  fetchedAt     DateTime @default(now()) @map("fetched_at")
+  item          Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@map("item_source_doc")
+}
+
+// ───────── 스타 · 트렌드 ─────────
+model RepoStarDay {
+  repoId        Int      @map("repo_id")
+  day           DateTime @db.Date
+  snapshotTotal Int?     @map("snapshot_total") // 우리 관측 총합(순증감)
+  officialAdded Int?     @map("official_added") // 공식 Star History 일별
+  externalAdded Int?     @map("external_added") // OSS Insight(선택)
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  repo          Repo     @relation(fields: [repoId], references: [id], onDelete: Cascade)
+
+  @@id([repoId, day]) // 범위 조회 (repo_id = ANY($ids) AND day >= $from)도 이 PK로
+  @@map("repo_star_day")
+}
+
+model TrendScore {
+  window        TrendWindow
+  asOf          DateTime    @map("as_of") @db.Date
+  repoId        Int         @map("repo_id")
+  score         Float
+  gain          Int
+  acceleration  Float
+  spikePenalty  Float       @map("spike_penalty")
+  rank          Int
+  prevRank      Int?        @map("prev_rank") // 전일 순위(null = NEW)
+  paramsVersion Int         @map("params_version") // TREND_PARAMS 변경 추적
+  repo          Repo        @relation(fields: [repoId], references: [id], onDelete: Cascade)
+
+  @@id([window, asOf, repoId]) // max(as_of) 조회도 PK 선두 (window, as_of) 역방향 스캔
+  @@index([window, asOf, rank]) // 트렌딩 페이지 rank 커서
+  @@map("trend_score")
+}
+
+// ───────── 보안 ─────────
+model SecurityScan {
+  id             Int               @id @default(autoincrement())
+  itemId         Int               @map("item_id")
+  headSha        String            @map("head_sha") @db.Char(40)
+  ruleSetVersion String            @map("rule_set_version")
+  status         ScanStatus
+  rawLevel       RiskLevel?        @map("raw_level") // 엔진 판정
+  level          RiskLevel? // Override 반영
+  findingCount   Int               @default(0) @map("finding_count")
+  scannedAt      DateTime          @default(now()) @map("scanned_at")
+  item           Item              @relation("ItemScans", fields: [itemId], references: [id])
+  currentOf      Item?             @relation("CurrentScan")
+  findings       SecurityFinding[]
+
+  @@unique([itemId, headSha, ruleSetVersion]) // 같은 코드·같은 규칙이면 재검사 안 함(멱등)
+  @@index([itemId, scannedAt(sort: Desc)]) // 검사 이력
+  @@map("security_scan")
+}
+
+model SecurityFinding {
+  id          Int          @id @default(autoincrement())
+  scanId      Int          @map("scan_id")
+  ruleId      String       @map("rule_id") // 'R01_REMOTE_PIPE_EXEC' — 규칙 메타는 코드 상수(SSOT)
+  severity    RiskLevel // CAUTION | DANGER
+  filePath    String       @map("file_path")
+  line        Int
+  excerpt     String // ≤200자, 제어·양방향 문자 제거
+  fingerprint String       @db.Char(64)
+  suppressed  Boolean      @default(false)
+  scan        SecurityScan @relation(fields: [scanId], references: [id], onDelete: Cascade)
+
+  @@index([scanId])
+  @@map("security_finding")
+}
+
+model SecurityOverride {
+  id          Int       @id @default(autoincrement())
+  itemId      Int       @map("item_id")
+  fingerprint String    @db.Char(64)
+  ruleId      String    @map("rule_id") // 기록·표시용 스냅샷
+  reason      String // 10자 이상(Zod)
+  appealUrl   String?   @map("appeal_url") // GitHub Issue URL
+  activeKey   String?   @unique @map("active_key") // '{itemId}:{fingerprint}' — 활성 예외 1개 보장(NULL은 중복 허용)
+  createdById Int       @map("created_by_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  revokedById Int?      @map("revoked_by_id")
+  revokedAt   DateTime? @map("revoked_at")
+  item        Item      @relation(fields: [itemId], references: [id])
+  createdBy   User      @relation("OverrideCreatedBy", fields: [createdById], references: [id])
+
+  @@index([itemId, createdAt(sort: Desc)])
+  @@map("security_override")
+}
+
+model Bookmark {
+  userId    Int        @map("user_id")
+  itemId    Int        @map("item_id")
+  seenLevel RiskLevel? @map("seen_level") // 저장/확인 시점 등급
+  createdAt DateTime   @default(now()) @map("created_at")
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item      Item       @relation(fields: [itemId], references: [id])
+
+  @@id([userId, itemId]) // 내 북마크·변경 탭 = PK 선두 user_id
+  @@map("bookmark")
+}
+
+// ───────── 수집 · 품질 ─────────
+model IngestionRun {
+  id          Int                @id @default(autoincrement())
+  trigger     IngestionTrigger
+  asOf        DateTime           @map("as_of") @db.Date
+  cronKey     String?            @unique @map("cron_key") // CRON이면 'YYYY-MM-DD', MANUAL이면 null → 하루 1 정기 실행
+  status      RunStatus          @default(REQUESTED)
+  stages      StageName[] // 요청 단계(빈 배열 = 전체)
+  requestedBy Int?               @map("requested_by")
+  startedAt   DateTime?          @map("started_at")
+  finishedAt  DateTime?          @map("finished_at")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  stageRows   IngestionStage[]
+  failures    IngestionFailure[]
+
+  @@index([createdAt(sort: Desc)])
+  @@index([status]) // REQUESTED 집어 가기
+  @@map("ingestion_run")
+}
+
+model IngestionStage {
+  runId      Int          @map("run_id")
+  stage      StageName
+  status     StageStatus  @default(PENDING)
+  cursor     Json? // {lastRepoId, codeSearchSlice, …}
+  stats      Json         @default("{}") // {processed, failed, ghCoreUsed, ghSearchUsed, …}
+  error      String?
+  startedAt  DateTime?    @map("started_at")
+  finishedAt DateTime?    @map("finished_at")
+  run        IngestionRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@id([runId, stage])
+  @@map("ingestion_stage")
+}
+
+model IngestionFailure {
+  id        Int          @id @default(autoincrement())
+  runId     Int          @map("run_id")
+  stage     StageName
+  repoId    Int?         @map("repo_id")
+  itemId    Int?         @map("item_id")
+  code      String // 'GH_404', 'GH_RATE_LIMIT', 'PARSE_ERROR', 'AI_TIMEOUT' …
+  message   String
+  createdAt DateTime     @default(now()) @map("created_at")
+  run       IngestionRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, stage])
+  @@map("ingestion_failure")
+}
+
+model DataQualityIssue {
+  id            Int             @id @default(autoincrement())
+  kind          DataQualityKind
+  repoId        Int             @map("repo_id")
+  windowStart   DateTime        @map("window_start") @db.Date
+  windowEnd     DateTime        @map("window_end") @db.Date
+  values        Json // {snapshot, official, external, stars, tolerance}
+  diff          Int
+  status        IssueStatus     @default(OPEN)
+  note          String?
+  detectedRunId Int?            @map("detected_run_id")
+  resolvedById  Int?            @map("resolved_by_id")
+  resolvedAt    DateTime?       @map("resolved_at")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  repo          Repo            @relation(fields: [repoId], references: [id], onDelete: Cascade)
+
+  @@unique([kind, repoId, windowEnd]) // 같은 날 재실행해도 이슈 1건
+  @@index([status, createdAt(sort: Desc)]) // 대시보드 목록
+  @@map("data_quality_issue")
+}
