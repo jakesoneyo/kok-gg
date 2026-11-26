@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>소프트 프로덕트 메인</title>
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;600&amp;family=Noto+Sans+KR:wght@400;500;600;700&amp;display=swap"
+          rel="stylesheet"
+        />
+        <style>
+          body {
+            margin: 0;
+            background: #f4f6fb;
+            color: #121a2f;
+            font-family: 'Geist', 'Noto Sans KR', system-ui, sans-serif;
+            -webkit-font-smoothing: antialiased;
+          }
+          a {
+            color: #121a2f;
+            text-decoration: none;
+            transition: color 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+          }
+          a:hover {
+            color: #2a46b8;
+          }
+        </style>
+      </helmet>
+
+      <div style="background: #f4f6fb; color: #121a2f; min-height: 100%; padding-bottom: 8px;">
+        <!-- 헤더: 떠 있는 필 -->
+        <div style="max-width: 1240px; margin: 0 auto; padding: 20px 24px 0;">
+          <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 28px; padding: 8px 8px 8px 18px; background: #ffffff; border-radius: 28px; box-shadow: {{ shadow }}, inset 0 0 0 1px rgba(30, 45, 90, 0.06);">
+            <a href="#" aria-label="kok.gg 홈" style="display: inline-flex; align-items: center; gap: 10px; min-height: 44px;">
+              <span aria-hidden="true" style="width: 28px; height: 28px; border-radius: 9px; background: {{ accent }}; display: inline-flex; align-items: center; justify-content: center; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 4px 10px -4px {{ accentLine }};">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: #ffffff;"></span>
+              </span>
+              <span style="font-weight: 700; font-size: 19px; letter-spacing: -0.03em; color: #121a2f;">kok<span style="color: {{ accent }};">.</span>gg</span>
+              <span style="font-size: 13px; color: #5f6982;">콕지지</span>
+            </a>
+            <nav aria-label="주요 메뉴" style="flex: 1 1 auto;">
+              <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 2px;">
+                <li><a href="#" aria-current="page" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 999px; background: #eef1f8; font-size: 14px; font-weight: 600; color: #121a2f;">트렌딩</a></li>
+                <li><a href="#" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 999px; font-size: 14px; color: #4a5470;">카탈로그</a></li>
+                <li><a href="#" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 999px; font-size: 14px; color: #4a5470;">검색</a></li>
+                <li><a href="#" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 999px; font-size: 14px; color: #4a5470;">북마크</a></li>
+              </ul>
+            </nav>
+            <button type="button" style="display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 6px 0 18px; background: #121a2f; color: #ffffff; border: 0; border-radius: 999px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 6px 16px -8px rgba(18, 26, 47, 0.6);">
+              로그인
+              <span aria-hidden="true" style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255, 255, 255, 0.14); display: inline-flex; align-items: center; justify-content: center;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M7 17L17 7"></path><path d="M9 7h8v8"></path></svg>
+              </span>
+            </button>
+          </header>
+        </div>
+
+        <main>
+          <!-- 히어로: 자연어 검색 + 오늘 현황 -->
+          <section aria-labelledby="hero-h">
+            <div style="max-width: 1240px; margin: 0 auto; padding: 80px 24px 88px; display: flex; flex-wrap: wrap; gap: 40px 56px; align-items: flex-end;">
+              <form role="search" action="#" style="flex: 999 1 600px; min-width: 0; display: flex; flex-direction: column;">
+                <span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 12px; border-radius: 999px; background: #ffffff; box-shadow: inset 0 0 0 1px rgba(30, 45, 90, 0.08); font-size: 12px; font-weight: 500; color: #4a5470;">
+                  <span aria-hidden="true" style="width: 6px; height: 6px; border-radius: 50%; background: {{ accent }};"></span>
+                  Claude Code 플러그인, 스킬, 훅 데일리 트렌드
+                </span>
+                <h1 id="hero-h" style="margin: 22px 0 0; font-size: 64px; line-height: 1.08; font-weight: 700; letter-spacing: -0.04em;">이런 거 있어?</h1>
+                <p style="margin: 16px 0 0; font-size: 17px; line-height: 1.65; color: #4a5470; max-width: 54ch;">필요한 걸 말로 물어보세요. 한국어 요약과 매일 스타 증가량, 위험 신호 탐지 결과를 함께 보여 드립니다.</p>
+
+                <div style="margin-top: 32px; padding: 6px; border-radius: 28px; background: rgba(30, 45, 90, 0.04); box-shadow: inset 0 0 0 1px rgba(30, 45, 90, 0.06);">
+                  <div style="display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 20px; background: #ffffff; border-radius: 22px; box-shadow: {{ shadow }}, inset 0 1px 0 rgba(255, 255, 255, 0.9);">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5f6982" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg>
+                    <label for="q" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;">자연어로 확장 검색</label>
+                    <input id="q" name="q" type="search" maxlength="200" placeholder="PR 올리기 전에 자동으로 린트 돌려주는 훅 있어?" style="flex: 1 1 auto; min-width: 0; height: 56px; padding: 0 4px; background: transparent; border: 0; outline-offset: 4px; color: #121a2f; font: inherit; font-size: 17px;" />
+                    <button type="submit" style="display: inline-flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 6px 0 20px; background: {{ accent }}; color: #ffffff; border: 0; border-radius: 18px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 8px 18px -10px {{ accent }};">
+                      찾아보기
+                      <span aria-hidden="true" style="width: 40px; height: 40px; border-radius: 13px; background: rgba(255, 255, 255, 0.16); display: inline-flex; align-items: center; justify-content: center;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg>
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                <div style="margin-top: 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+                  <span style="font-size: 13px; color: #5f6982; margin-right: 4px;">이렇게 물어보세요</span>
+                  <button type="button" style="min-height: 44px; padding: 0 16px; background: #ffffff; border: 0; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(30, 45, 90, 0.09), 0 1px 2px rgba(20, 30, 60, 0.04); color: #2c3550; font: inherit; font-size: 14px; cursor: pointer;">커밋 메시지를 한국어로 다듬어 주는 스킬</button>
+                  <button type="button" style="min-height: 44px; padding: 0 16px; background: #ffffff; border: 0; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(30, 45, 90, 0.09), 0 1px 2px rgba(20, 30, 60, 0.04); color: #2c3550; font: inherit; font-size: 14px; cursor: pointer;">토큰 사용량을 상태줄에 보여 주는 플러그인</button>
+                  <button type="button" style="min-height: 44px; padding: 0 16px; background: #ffffff; border: 0; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(30, 45, 90, 0.09), 0 1px 2px rgba(20, 30, 60, 0.04); color: #2c3550; font: inherit; font-size: 14px; cursor: pointer;">마이그레이션 실수를 막는 훅</button>
+                </div>
+              </form>
+
+              <!-- 오른쪽 벤토: 현황 + 데모 로그인 -->
+              <div style="flex: 1 1 340px; min-width: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
+                <div style="padding: 20px; background: #ffffff; border-radius: 22px; box-shadow: {{ shadow }}, inset 0 0 0 1px rgba(30, 45, 90, 0.05);">
+                  <div style="font-size: 12px; color: #5f6982;">추적 중인 저장소</div>
+                  <div style="margin-top: 10px; font-size: 30px; font-weight: 600; letter-spacing: -0.03em;">1,284</div>
+                  <div style="margin-top: 4px; font-size: 12px; color: {{ accent }}; font-weight: 600;">오늘 +12 신규</div>
+                </div>
+                <div style="padding: 20px; background: #ffffff; border-radius: 22px; box-shadow: {{ shadow }}, inset 0 0 0 1px rgba(30, 45, 90, 0.05);">
+                  <div style="font-size: 12px; color: #5f6982;">위험 등급 항목</div>
+                  <div style="margin-top: 10px; font-size: 30px; font-weight: 600; letter-spacing: -0.03em;">37</div>
+                  <div style="margin-top: 4px; font-size: 12px; color: #5f6982;">규칙셋 v3, 04:10 검사</div>
+                </div>
+                <div style="grid-column: 1 / -1; padding: 6px; border-radius: 28px; background: {{ accentWash }}; box-shadow: inset 0 0 0 1px {{ accentHair }};">
+                  <div style="padding: 20px; background: #ffffff; border-radius: 22px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 2px rgba(20, 30, 60, 0.04);">
+                    <p style="margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em;">북마크한 항목의 보안 등급이 바뀌면 알려 드려요</p>
+                    <button type="button" style="margin-top: 16px; width: 100%; display: inline-flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 52px; padding: 0 6px 0 20px; background: #121a2f; color: #ffffff; border: 0; border-radius: 999px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; box-shadow: 0 10px 22px -12px rgba(18, 26, 47, 0.7);">
+                      회원가입 없이 둘러보기
+                      <span aria-hidden="true" style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255, 255, 255, 0.14); display: inline-flex; align-items: center; justify-content: center;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M7 17L17 7"></path><path d="M9 7h8v8"></path></svg>
+                      </span>
+                    </button>
+                    <p style="margin: 10px 0 0; font-size: 13px; color: #5f6982; text-align: center;">회원가입 없이 체험해 볼 수 있습니다.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 트렌딩 -->
+          <section aria-labelledby="trend-h">
+            <div style="max-width: 1240px; margin: 0 auto; padding: 0 24px 96px;">
+              <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 24px;">
+                <div style="min-width: 0;">
+                  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
+                    <h2 id="trend-h" style="margin: 0; font-size: 36px; line-height: 1.15; font-weight: 700; letter-spacing: -0.035em;">트렌딩</h2>
+                    <span style="display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; background: #e9ecf4; font-size: 12px; font-weight: 500; color: #3d4763;">샘플 데이터</span>
+                  </div>
+                  <p style="margin: 8px 0 0; font-size: 14px; color: #5f6982;">저장소 단위 Trend Score, 2026-11-24 기준. 큰 숫자는 기간 내 스타 증가량입니다.</p>
+                </div>
+                <div role="group" aria-label="기간" style="display: inline-flex; gap: 2px; padding: 4px; border-radius: 999px; background: #e7eaf3; box-shadow: inset 0 1px 2px rgba(20, 30, 60, 0.06);">
+                  <button type="button" aria-pressed="false" style="min-height: 44px; min-width: 72px; padding: 0 18px; background: transparent; border: 0; border-radius: 999px; color: #4a5470; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer;">1일</button>
+                  <button type="button" aria-pressed="true" style="min-height: 44px; min-width: 72px; padding: 0 18px; background: #ffffff; border: 0; border-radius: 999px; color: #121a2f; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 1px 2px rgba(20, 30, 60, 0.08), 0 4px 12px -4px rgba(20, 30, 60, 0.14);">7일</button>
+                  <button type="button" aria-pressed="false" style="min-height: 44px; min-width: 72px; padding: 0 18px; background: transparent; border: 0; border-radius: 999px; color: #4a5470; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer;">30일</button>
+                </div>
+              </div>
+
+              <!-- 정렬·필터 -->
+              <div style="margin-top: 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px;">
+                <div role="group" aria-labelledby="sort-l" style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px;">
+                  <span id="sort-l" style="font-size: 12px; font-weight: 600; color: #5f6982; margin-right: 4px;">정렬</span>
+                  <button type="button" aria-pressed="true" style="min-height: 44px; padding: 0 16px; background: {{ accentTint }}; border: 0; border-radius: 999px; box-shadow: inset 0 0 0 1px {{ accentHair }}; color: {{ accent }}; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;">트렌딩</button>
+                  <button type="button" aria-pressed="false" style="min-height: 44px; padding: 0 16px; background: #ffffff; border: 0; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(30, 45, 90, 0.09); color: #2c3550; font: inherit; font-size: 13px; cursor: pointer;">총 스타순</button>
+                  <button type="button" aria-pressed="false" style="min-height: 44px; padding: 0 16px; background: #ffffff; border: 0; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(30, 45, 90, 0.09); color: #2c3550; font: inherit; font-size: 13px; cursor: pointer;">최근 업데이트순</button>
+                  <button type="button" aria-pressed="false" style="min-height: 44px; padding: 0 16px; background: #ffffff; border: 0; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(30, 45, 90, 0.09); color: #2c3550; font: inherit; font-size: 13px; cursor: pointer;">신규 등록순</button>
+                </div>
+                <div role="group" aria-labelledby="kind-l" style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px;">
+                  <span id="kind-l" style="font-size: 12px; font-weight: 600; color: #5f6982; margin-right: 4px;">종류</span>
+                  <div style="display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border-radius: 999px; background: #e7eaf3;">
+                    <button type="button" aria-pressed="true" style="min-height: 44px; padding: 0 14px; background: #ffffff; border: 0; border-radius: 999px; color: #121a2f; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 1px 2px rgba(20, 30, 60, 0.08);">전체</button>
+                    <button type="button" aria-pressed="false" style="min-height: 44px; padding: 0 14px; background: transparent; border: 0; border-radius: 999px; color: #3d4763; font: inherit; font-size: 13px; cursor: pointer;">플러그인</button>
+                    <button type="button" aria-pressed="false" style="min-height: 44px; padding: 0 14px; background: transparent; border: 0; border-radius: 999px; color: #3d4763; font: inherit; font-size: 13px; cursor: pointer;">스킬</button>
+                    <button type="button" aria-pressed="false" style="min-height: 44px; padding: 0 14px; background: transparent; border: 0; border-radius: 999px; color: #3d4763; font: inherit; font-size: 13px; cursor: pointer;">훅</button>
+                  </div>
+                </div>
+                <div role="group" aria-labelledby="level-l" style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px;">
+                  <span id="level-l" style="font-size: 12px; font-weight: 600; color: #5f6982; margin-right: 4px;">보안 등급</span>
+                  <div style="display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border-radius: 999px; background: #e7eaf3;">
+                    <button type="button" aria-pressed="true" style="min-height: 44px; padding: 0 14px; background: #ffffff; border: 0; border-radius: 999px; color: #121a2f; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 1px 2px rgba(20, 30, 60, 0.08);">전체</button>
+                    <button type="button" aria-pressed="false" style="min-height: 44px; padding: 0 14px; background: transparent; border: 0; border-radius: 999px; color: #3d4763; font: inherit; font-size: 13px; cursor: pointer;">안전</button>
+                    <button type="button" aria-pressed="false" style="min-height: 44px; padding: 0 14px; background: transparent; border: 0; border-radius: 999px; color: #3d4763; font: inherit; font-size: 13px; cursor: pointer;">주의</button>
+                    <button type="button" aria-pressed="false" style="min-height: 44px; padding: 0 14px; background: transparent; border: 0; border-radius: 999px; color: #3d4763; font: inherit; font-size: 13px; cursor: pointer;">위험</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 순위 리스트 (이중 베젤 패널) -->
+              <div style="margin-top: 20px; padding: 6px; border-radius: 30px; background: rgba(30, 45, 90, 0.04); box-shadow: inset 0 0 0 1px rgba(30, 45, 90, 0.06);">
+                <div style="background: #ffffff; border-radius: 24px; box-shadow: {{ shadow }}, inset 0 1px 0 rgba(255, 255, 255, 0.9); overflow-x: auto;">
+                  <div role="table" aria-label="7일 트렌딩 순위 (샘플 데이터)" style="min-width: 980px; padding: 8px 10px 10px;">
+                    <div role="row" style="display: grid; grid-template-columns: 52px minmax(0, 1fr) 84px 176px 92px 92px 44px; gap: 16px; align-items: center; height: 44px; padding: 0 14px; font-size: 12px; font-weight: 500; color: #5f6982;">
+                      <span role="columnheader">순위</span>
+                      <span role="columnheader">저장소 / 한국어 요약</span>
+                      <span role="columnheader">종류</span>
+                      <span role="columnheader" style="text-align: right; color: {{ accent }}; font-weight: 600;">7일 증가</span>
+                      <span role="columnheader" style="text-align: right;">총 스타</span>
+                      <span role="columnheader">보안</span>
+                      <span role="columnheader" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;">북마크</span>
+                    </div>
+
+                    <sc-for list="{{ rows }}" as="item" hint-placeholder-count="8">
+                      <div role="row" style="display: grid; grid-template-columns: 52px minmax(0, 1fr) 84px 176px 92px 92px 44px; gap: 16px; align-items: center; min-height: 78px; padding: 10px 14px; box-sizing: border-box; border-radius: 18px; background: {{ item.rowBg }}; box-shadow: {{ item.rowShadow }}; border-top: 1px solid {{ item.rowLine }};">
+                        <div role="cell" style="display: flex; flex-direction: column; gap: 2px;">
+                          <span style="font-size: 18px; font-weight: 600; letter-spacing: -0.02em; color: #121a2f;">{{ item.rank }}</span>
+                          <span style="font-family: 'Geist Mono', monospace; font-size: 11px; font-weight: 600; color: {{ item.deltaColor }};">{{ item.delta }}</span>
+                        </div>
+                        <div role="cell" style="min-width: 0;">
+                          <a href="#detail" style="display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-family: 'Geist Mono', monospace; font-size: 14px;">
+                            <span><span style="color: #5f6982;">{{ item.owner }}/</span><span style="font-weight: 600;">{{ item.name }}</span></span>
+                            <sc-if value="{{ item.selected }}" hint-placeholder-val="{{ false }}">
+                              <span style="display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 999px; background: #ffffff; box-shadow: inset 0 0 0 1px {{ accentHair }}; font-family: 'Geist', 'Noto Sans KR', sans-serif; font-size: 11px; font-weight: 600; color: {{ accent }};">아래 상세</span>
+                            </sc-if>
+                          </a>
+                          <p style="margin: 5px 0 0; font-size: 13.5px; line-height: 1.5; color: #4a5470; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item.summary }}</p>
+                        </div>
+                        <span role="cell"><span style="display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 999px; background: #f0f2f8; font-size: 12px; font-weight: 500; color: #3d4763;">{{ item.kind }}</span></span>
+                        <div role="cell" style="display: flex; align-items: center; justify-content: flex-end; gap: 12px;">
+                          <svg width="64" height="26" viewBox="0 0 64 26" aria-hidden="true" style="flex: none;"><polyline points="{{ item.spark }}" fill="none" stroke="{{ accent }}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></polyline></svg>
+                          <span style="font-size: 21px; font-weight: 700; letter-spacing: -0.03em; color: {{ accent }}; min-width: 58px; text-align: right;">{{ item.growth }}</span>
+                        </div>
+                        <span role="cell" style="text-align: right; font-size: 14px; color: #4a5470;">{{ item.stars }}</span>
+                        <span role="cell">
+                          <sc-if value="{{ item.isSafe }}" hint-placeholder-val="{{ true }}">
+                            <span style="display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 999px; background: #e9f6ef; box-shadow: inset 0 0 0 1px #c5e6d3; color: #15603a; font-size: 12px; font-weight: 600;"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="3.6" fill="none" stroke="currentColor" stroke-width="1.5"></circle></svg>안전</span>
+                          </sc-if>
+                          <sc-if value="{{ item.isCaution }}" hint-placeholder-val="{{ false }}">
+                            <span style="display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 999px; background: #f8d688; color: #5c3a00; font-size: 12px; font-weight: 600;"><svg width="11" height="10" viewBox="0 0 11 10" aria-hidden="true"><path d="M5.5 1 L10 9 H1 Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"></path></svg>주의</span>
+                          </sc-if>
+                          <sc-if value="{{ item.isDanger }}" hint-placeholder-val="{{ false }}">
+                            <span style="display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 999px; background: #a8231a; color: #ffffff; font-size: 12px; font-weight: 700; box-shadow: 0 4px 10px -6px rgba(168, 35, 26, 0.8);"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><rect x="1.2" y="1.2" width="7.6" height="7.6" rx="1" fill="currentColor"></rect></svg>위험</span>
+                          </sc-if>
+                        </span>
+                        <span role="cell">
+                          <button type="button" aria-label="{{ item.bmLabel }}" aria-pressed="{{ item.bmPressed }}" style="width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; background: {{ item.bmBg }}; border: 0; border-radius: 14px; box-shadow: inset 0 0 0 1px rgba(30, 45, 90, 0.08); color: {{ item.bmColor }}; cursor: pointer;">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="{{ item.bmFill }}" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 3.5h11v17l-5.5-4-5.5 4z"></path></svg>
+                          </button>
+                        </span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; padding: 0 8px;">
+                <span style="font-size: 13px; color: #5f6982;">증가량, 활동일, 데이터 커버리지 기준을 넘지 못한 저장소는 순위에서 빠집니다.</span>
+                <button type="button" style="display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 6px 0 18px; background: #ffffff; border: 0; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(30, 45, 90, 0.1), 0 1px 2px rgba(20, 30, 60, 0.05); color: #121a2f; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer;">
+                  다음 20개 보기
+                  <span aria-hidden="true" style="width: 32px; height: 32px; border-radius: 50%; background: #eef1f8; display: inline-flex; align-items: center; justify-content: center;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M6 13l6 6 6-6"></path></svg>
+                  </span>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- 상세 미리보기 -->
+          <section id="detail" aria-labelledby="detail-h" style="background: #eceff7;">
+            <div style="max-width: 1240px; margin: 0 auto; padding: 88px 24px 96px;">
+              <span style="display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 999px; background: #ffffff; box-shadow: inset 0 0 0 1px rgba(30, 45, 90, 0.08); font-size: 12px; font-weight: 500; color: #4a5470;">항목 상세 미리보기</span>
+
+              <div style="margin-top: 18px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 20px;">
+                <div style="min-width: 0;">
+                  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+                    <span style="display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 999px; background: #ffffff; font-size: 12px; font-weight: 500; color: #3d4763;">플러그인</span>
+                    <span style="font-size: 13px; color: #4a5470;">7일 3위 <span style="color: {{ accent }}; font-weight: 600;">▲4</span></span>
+                  </div>
+                  <h2 id="detail-h" style="margin: 12px 0 0; font-family: 'Geist Mono', monospace; font-size: 32px; font-weight: 600; letter-spacing: -0.03em; overflow-wrap: anywhere;"><span style="color: #5f6982; font-weight: 500;">dalbit-io/</span>env-sync-plugin</h2>
+                </div>
+                <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+                  <a href="#" style="display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 6px 0 18px; background: #ffffff; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(30, 45, 90, 0.08), 0 1px 2px rgba(20, 30, 60, 0.05); font-size: 14px; font-weight: 500;">
+                    GitHub에서 보기
+                    <span aria-hidden="true" style="width: 32px; height: 32px; border-radius: 50%; background: #eef1f8; display: inline-flex; align-items: center; justify-content: center;">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M7 17L17 7"></path><path d="M9 7h8v8"></path></svg>
+                    </span>
+                  </a>
+                  <button type="button" aria-pressed="false" style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; background: #ffffff; border: 0; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(30, 45, 90, 0.08), 0 1px 2px rgba(20, 30, 60, 0.05); color: #121a2f; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 3.5h11v17l-5.5-4-5.5 4z"></path></svg>
+                    북마크
+                  </button>
+                </div>
+              </div>
+
+              <div style="margin-top: 28px; display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start;">
+                <!-- 왼쪽: 차트 + 요약 -->
+                <div style="flex: 999 1 600px; min-width: 0; display: flex; flex-direction: column; gap: 20px;">
+                  <div style="padding: 6px; border-radius: 30px; background: rgba(255, 255, 255, 0.5); box-shadow: inset 0 0 0 1px rgba(30, 45, 90, 0.06);">
+                    <div style="padding: 28px; background: #ffffff; border-radius: 24px; box-shadow: {{ shadow }}, inset 0 1px 0 rgba(255, 255, 255, 0.9);">
+                      <div style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px;">
+                        <div>
+                          <h3 style="margin: 0; font-size: 16px; font-weight: 600;">스타 추이 (30일)</h3>
+                          <p style="margin: 6px 0 0; font-size: 13px; color: #5f6982;">음영 구간이 최근 7일입니다.</p>
+                        </div>
+                        <dl style="margin: 0; display: flex; flex-wrap: wrap; gap: 8px 28px;">
+                          <div>
+                            <dt style="font-size: 12px; color: #5f6982;">7일 증가</dt>
+                            <dd style="margin: 2px 0 0; font-size: 34px; font-weight: 700; letter-spacing: -0.04em; color: {{ accent }};">+612</dd>
+                          </div>
+                          <div>
+                            <dt style="font-size: 12px; color: #5f6982;">총 스타</dt>
+                            <dd style="margin: 2px 0 0; padding-top: 10px; font-size: 20px; font-weight: 600; letter-spacing: -0.02em;">1,486</dd>
+                          </div>
+                          <div>
+                            <dt style="font-size: 12px; color: #5f6982;">Trend Score</dt>
+                            <dd style="margin: 2px 0 0; padding-top: 10px; font-size: 20px; font-weight: 600; letter-spacing: -0.02em;">398.2</dd>
+                          </div>
+                        </dl>
+                      </div>
+
+                      <div role="img" aria-label="최근 30일 누적 스타 추이 선 차트. 10월 26일 566개에서 11월 24일 1,486개로 증가. 최근 7일 증가 612개, 최대 일 증가 11월 21일 121개." style="margin-top: 24px; display: flex; gap: 12px;">
+                        <div aria-hidden="true" style="display: flex; flex-direction: column; justify-content: space-between; height: 200px; font-size: 11px; color: #5f6982; text-align: right; min-width: 36px;">
+                          <span>1,600</span><span>1,000</span><span>400</span>
+                        </div>
+                        <div style="flex: 1 1 auto; min-width: 0;">
+                          <div style="position: relative; height: 200px;">
+                            <svg width="100%" height="200" viewBox="0 0 300 120" preserveAspectRatio="none" aria-hidden="true" style="display: block; overflow: visible;">
+                              <rect x="{{ chart.shadeX }}" y="0" width="{{ chart.shadeW }}" height="120" fill="{{ accentTint }}"></rect>
+                              <path d="M0 0.5 H300 M0 60 H300 M0 119.5 H300" stroke="#e6e9f2" stroke-width="1" vector-effect="non-scaling-stroke" fill="none"></path>
+                              <path d="{{ chart.area }}" fill="{{ accentWash }}"></path>
+                              <path d="{{ chart.line }}" fill="none" stroke="{{ accent }}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"></path>
+                            </svg>
+                            <span aria-hidden="true" style="position: absolute; right: -6px; top: {{ chart.endTop }}; width: 12px; height: 12px; margin-top: -6px; border-radius: 50%; background: #ffffff; box-shadow: inset 0 0 0 3px {{ accent }}, 0 0 0 5px {{ accentTint }};"></span>
+                          </div>
+                          <div aria-hidden="true" style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 11px; color: #5f6982;">
+                            <span>10/26</span><span>11/04</span><span>11/14</span><span>11/24</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style="padding: 6px; border-radius: 30px; background: rgba(255, 255, 255, 0.5); box-shadow: inset 0 0 0 1px rgba(30, 45, 90, 0.06);">
+                    <div style="padding: 28px; background: #ffffff; border-radius: 24px; box-shadow: {{ shadow }}, inset 0 1px 0 rgba(255, 255, 255, 0.9);">
+                      <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px;">
+                        <h3 style="margin: 0; font-size: 16px; font-weight: 600;">한국어 사용 요약</h3>
+                        <a href="#" style="display: inline-flex; align-items: center; min-height: 32px; font-size: 12px; color: #4a5470; text-decoration: underline; text-underline-offset: 3px;">AI 생성 요약 · 원문 확인</a>
+                      </div>
+                      <p style="margin: 14px 0 0; font-size: 15.5px; line-height: 1.8; color: #2c3550; max-width: 68ch;">프로젝트의 .env 파일과 Claude Code 설정을 팀 공용 저장소와 맞춰 주는 플러그인입니다. 세션이 시작될 때 훅이 원격 설정을 내려받고, 끝날 때 바뀐 값을 다시 올립니다.</p>
+                      <ul style="margin: 16px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px;">
+                        <li style="display: inline-flex; align-items: center; min-height: 34px; padding: 0 14px; border-radius: 999px; background: #f3f5fa; font-size: 13.5px; color: #2c3550;">새 팀원 개발 환경 한 번에 맞추기</li>
+                        <li style="display: inline-flex; align-items: center; min-height: 34px; padding: 0 14px; border-radius: 999px; background: #f3f5fa; font-size: 13.5px; color: #2c3550;">여러 기기 간 설정 동기화</li>
+                        <li style="display: inline-flex; align-items: center; min-height: 34px; padding: 0 14px; border-radius: 999px; background: #f3f5fa; font-size: 13.5px; color: #2c3550;">설정 변경 이력 남기기</li>
+                      </ul>
+
+                      <figure style="margin: 24px 0 0; padding: 5px; border-radius: 22px; background: #e9ecf4;">
+                        <figcaption style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 12px 10px; font-size: 12px; color: #3d4763;">
+                          <span style="font-weight: 600;">설치 명령</span>
+                          <span style="display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: 999px; background: #ffffff; font-weight: 500;">README 원문 인용</span>
+                        </figcaption>
+                        <pre style="margin: 0; padding: 18px 20px; overflow-x: auto; background: #111829; border-radius: 17px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06); font-family: 'Geist Mono', monospace; font-size: 13.5px; line-height: 1.9; color: #e6eaf5;"><code><span style="color: #8f9ab8;">$</span> /plugin marketplace add dalbit-io/claude-plugins
+<span style="color: #8f9ab8;">$</span> /plugin install env-sync@dalbit-io</code></pre>
+                      </figure>
+                      <p style="margin: 10px 0 0; display: flex; align-items: center; gap: 8px; font-size: 13px; color: #4a5470;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16.5v.01"></path></svg>
+                        인용한 설치 명령 자체에서는 위험 신호가 탐지되지 않았습니다.
+                      </p>
+                      <dl style="margin: 20px 0 0; display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 6px 12px; font-size: 14px;">
+                        <dt style="color: #5f6982;">요구사항</dt>
+                        <dd style="margin: 0; color: #2c3550;">Node.js 20 이상, 동기화 주소 환경변수 <code style="font-family: 'Geist Mono', monospace; font-size: 13px; padding: 2px 6px; border-radius: 6px; background: #f0f2f8;">ENV_SYNC_URL</code></dd>
+                      </dl>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 오른쪽: 위험 신호 탐지 -->
+                <div style="flex: 1 1 420px; min-width: 0; padding: 6px; border-radius: 30px; background: rgba(255, 255, 255, 0.5); box-shadow: inset 0 0 0 1px rgba(30, 45, 90, 0.06);">
+                  <div style="padding: 28px; background: #ffffff; border-radius: 24px; box-shadow: {{ shadow }}, inset 0 1px 0 rgba(255, 255, 255, 0.9);">
+                    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;">
+                      <h3 style="margin: 0; font-size: 16px; font-weight: 600;">위험 신호 탐지</h3>
+                      <span style="display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: 999px; background: #a8231a; color: #ffffff; font-size: 14px; font-weight: 700; box-shadow: 0 6px 14px -8px rgba(168, 35, 26, 0.9);"><svg width="11" height="11" viewBox="0 0 10 10" aria-hidden="true"><rect x="1.2" y="1.2" width="7.6" height="7.6" rx="1" fill="currentColor"></rect></svg>위험</span>
+                    </div>
+                    <p style="margin: 8px 0 0; font-size: 13px; color: #5f6982;">규칙셋 v3, 11/24 04:10 검사, 신호 3건 (위험 1, 주의 2)</p>
+
+                    <ol style="margin: 20px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px;">
+                      <sc-for list="{{ findings }}" as="f" hint-placeholder-count="3">
+                        <li style="padding: 16px; border-radius: 18px; background: #f5f7fb; box-shadow: inset 0 0 0 1px rgba(30, 45, 90, 0.05);">
+                          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;">
+                            <span style="display: inline-flex; align-items: center; gap: 10px;">
+                              <sc-if value="{{ f.isCaution }}" hint-placeholder-val="{{ false }}">
+                                <span style="display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 999px; background: #f8d688; color: #5c3a00; font-size: 12px; font-weight: 600;"><svg width="11" height="10" viewBox="0 0 11 10" aria-hidden="true"><path d="M5.5 1 L10 9 H1 Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"></path></svg>주의</span>
+                              </sc-if>
+                              <sc-if value="{{ f.isDanger }}" hint-placeholder-val="{{ true }}">
+                                <span style="display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 999px; background: #a8231a; color: #ffffff; font-size: 12px; font-weight: 700;"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><rect x="1.2" y="1.2" width="7.6" height="7.6" rx="1" fill="currentColor"></rect></svg>위험</span>
+                              </sc-if>
+                              <span style="font-size: 15px; font-weight: 600;">{{ f.rule }}</span>
+                            </span>
+                            <a href="#" style="display: inline-flex; align-items: center; gap: 4px; min-height: 32px; font-size: 12px; color: #4a5470; text-decoration: underline; text-underline-offset: 3px;">원문 보기<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;">({{ f.where }})</span></a>
+                          </div>
+                          <pre style="margin: 12px 0 0; padding: 10px 14px; overflow-x: auto; background: #ffffff; border-radius: 12px; box-shadow: inset 0 0 0 1px rgba(30, 45, 90, 0.07); font-family: 'Geist Mono', monospace; font-size: 12.5px; line-height: 1.6; color: #121a2f;"><code><span style="color: {{ accent }}; font-weight: 600;">{{ f.where }}</span>  {{ f.snippet }}</code></pre>
+                          <p style="margin: 10px 0 0; font-size: 13px; line-height: 1.6; color: #4a5470;">{{ f.note }}</p>
+                        </li>
+                      </sc-for>
+                    </ol>
+
+                    <div style="margin-top: 20px; padding: 18px; border-radius: 18px; background: {{ accentTint }}; box-shadow: inset 0 0 0 1px {{ accentHair }};">
+                      <p style="margin: 0; font-size: 14px; font-weight: 600; line-height: 1.6; color: #121a2f;">위험 신호 탐지 결과이며 안전을 보증하지 않습니다.</p>
+                      <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.65; color: #3d4763;">판정은 규칙 엔진만 수행합니다. 잘못 탐지된 신호라면 항목 정보가 미리 채워진 양식으로 알려 주세요.</p>
+                      <a href="#" style="margin-top: 14px; display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 6px 0 18px; background: #ffffff; border-radius: 999px; box-shadow: 0 1px 2px rgba(20, 30, 60, 0.06), 0 6px 14px -8px rgba(20, 30, 60, 0.2); font-size: 14px; font-weight: 600; color: {{ accent }};">
+                        오탐 신고 (GitHub Issue)
+                        <span aria-hidden="true" style="width: 32px; height: 32px; border-radius: 50%; background: {{ accentTint }}; display: inline-flex; align-items: center; justify-content: center;">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M7 17L17 7"></path><path d="M9 7h8v8"></path></svg>
+                        </span>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <!-- 푸터 -->
+        <footer>
+          <div style="max-width: 1240px; margin: 0 auto; padding: 56px 24px 48px; display: flex; flex-wrap: wrap; gap: 24px 64px; justify-content: space-between; align-items: flex-start;">
+            <div style="flex: 1 1 320px; min-width: 0;">
+              <span style="display: inline-flex; align-items: center; gap: 10px;">
+                <span aria-hidden="true" style="width: 24px; height: 24px; border-radius: 8px; background: {{ accent }}; display: inline-flex; align-items: center; justify-content: center;"><span style="width: 7px; height: 7px; border-radius: 50%; background: #ffffff;"></span></span>
+                <span style="font-weight: 700; font-size: 17px; letter-spacing: -0.03em;">kok<span style="color: {{ accent }};">.</span>gg</span>
+              </span>
+              <p style="margin: 12px 0 0; font-size: 13px; line-height: 1.7; color: #5f6982; max-width: 52ch;">스타 이력은 GitHub API와 공식 스타 기록을 교차검증해 매일 갱신합니다. 이 화면의 저장소와 수치는 디자인 시안용 가상 데이터입니다.</p>
+            </div>
+            <nav aria-label="데이터와 정책" style="flex: 1 1 460px;">
+              <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px;">
+                <li><a href="#" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 999px; background: #ffffff; box-shadow: inset 0 0 0 1px rgba(30, 45, 90, 0.07); font-size: 14px; color: #2c3550;">데이터 출처</a></li>
+                <li><a href="#" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 999px; background: #ffffff; box-shadow: inset 0 0 0 1px rgba(30, 45, 90, 0.07); font-size: 14px; color: #2c3550;">Trend Score 방법론</a></li>
+                <li><a href="#" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 999px; background: #ffffff; box-shadow: inset 0 0 0 1px rgba(30, 45, 90, 0.07); font-size: 14px; color: #2c3550;">위험 신호 규칙표</a></li>
+                <li><a href="#" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 999px; background: #ffffff; box-shadow: inset 0 0 0 1px rgba(30, 45, 90, 0.07); font-size: 14px; color: #2c3550;">오탐 신고 안내</a></li>
+              </ul>
+            </nav>
+          </div>
+        </footer>
+      </div>
+    </x-dc>
+    <script
+      type="text/x-dc"
+      data-dc-script
+      data-props='{"accent":{"editor":"color","default":"#3355d6"},"$preview":{"width":1440,"height":3100}}'
+    >
+      class Component extends DCLogic {
+        renderVals() {
+          const accent = this.props.accent ?? '#3355d6';
+          // 액센트 hex → rgba (칩 배경, 차트 음영, 헤어라인)
+          const tint = (a) => {
+            let h = String(accent).replace('#', '');
+            if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+            const n = parseInt(h.slice(0, 6), 16) || 0;
+            return 'rgba(' + ((n >> 16) & 255) + ', ' + ((n >> 8) & 255) + ', ' + (n & 255) + ', ' + a + ')';
+          };
+          const shadow = '0 1px 2px rgba(20, 30, 60, 0.04), 0 8px 24px -10px rgba(20, 30, 60, 0.10), 0 28px 56px -28px rgba(20, 30, 60, 0.14)';
+
+          // 7일 일별 증가량 → 64x26 스파크라인 좌표
+          const spark = (vals) => {
+            const max = Math.max.apply(null, vals) || 1;
+            return vals.map((v, i) => (2 + i * 10) + ',' + (24 - (v / max) * 21).toFixed(1)).join(' ');
+          };
+
+          const raw = [
+            { rank: 1, delta: '▲2', owner: 'hanbit-dev', name: 'lint-guard-hook', kind: '훅', summary: 'PR 올리기 전 바뀐 파일에만 ESLint와 Prettier를 돌리고, 실패하면 커밋을 막습니다.', stars: '2,184', growth: '+746', level: 'SAFE', d7: [61, 78, 90, 112, 131, 142, 132] },
+            { rank: 2, delta: '▼1', owner: 'moonlab', name: 'pr-review-skill', kind: '스킬', summary: 'diff를 읽고 리뷰 코멘트 초안을 한국어로 정리해 주는 스킬입니다.', stars: '5,930', growth: '+688', level: 'SAFE', bookmarked: true, d7: [118, 104, 96, 101, 92, 90, 87] },
+            { rank: 3, delta: '▲4', owner: 'dalbit-io', name: 'env-sync-plugin', kind: '플러그인', summary: '.env와 Claude Code 설정을 팀 공용 저장소와 세션마다 동기화합니다.', stars: '1,486', growth: '+612', level: 'DANGER', selected: true, d7: [58, 71, 80, 99, 121, 98, 85] },
+            { rank: 4, delta: '▲1', owner: 'gaon-labs', name: 'test-first-skill', kind: '스킬', summary: '기능 구현 전에 실패하는 테스트부터 쓰도록 작업 순서를 잡아 줍니다.', stars: '3,307', growth: '+421', level: 'SAFE', d7: [44, 52, 57, 61, 66, 70, 71] },
+            { rank: 5, delta: 'NEW', owner: 'byeol-kit', name: 'token-meter', kind: '플러그인', summary: '세션별 토큰 사용량과 예상 비용을 상태줄에 표시합니다.', stars: '892', growth: '+388', level: 'CAUTION', d7: [12, 20, 38, 61, 84, 90, 83] },
+            { rank: 6, delta: '▼2', owner: 'seoul-devtools', name: 'commit-ko-hook', kind: '훅', summary: '커밋 메시지를 Conventional Commits 형식의 한국어 문장으로 다듬습니다.', stars: '1,075', growth: '+297', level: 'SAFE', d7: [52, 47, 44, 41, 39, 38, 36] },
+            { rank: 7, delta: '▲5', owner: 'driftwood', name: 'migration-guard', kind: '훅', summary: 'DB 마이그레이션 파일이 바뀌면 롤백 스크립트가 있는지 검사합니다.', stars: '640', growth: '+214', level: 'CAUTION', d7: [14, 18, 25, 31, 36, 42, 48] },
+            { rank: 8, delta: '▼3', owner: 'nuri-ai', name: 'docs-sync-skill', kind: '스킬', summary: '코드 변경을 감지해 README와 API 문서 갱신 초안을 만듭니다.', stars: '2,418', growth: '+176', level: 'SAFE', d7: [31, 28, 26, 24, 23, 22, 22] },
+          ];
+          const rows = raw.map((r, i) => Object.assign({}, r, {
+            isSafe: r.level === 'SAFE',
+            isCaution: r.level === 'CAUTION',
+            isDanger: r.level === 'DANGER',
+            selected: !!r.selected,
+            spark: spark(r.d7),
+            rowBg: r.selected ? tint(0.07) : 'transparent',
+            rowShadow: r.selected ? 'inset 0 0 0 1px ' + tint(0.18) : 'none',
+            // 선택 행과 그 바로 아래 행은 구분선 대신 둥근 하이라이트로 분리
+            rowLine: i === 0 || r.selected || (raw[i - 1] && raw[i - 1].selected) ? 'transparent' : '#eef1f7',
+            deltaColor: r.delta.charAt(0) === '▲' ? accent : r.delta === 'NEW' ? '#121a2f' : '#5f6982',
+            bmPressed: r.bookmarked ? 'true' : 'false',
+            bmLabel: r.owner + '/' + r.name + (r.bookmarked ? ' 북마크 해제' : ' 북마크 추가'),
+            bmFill: r.bookmarked ? 'currentColor' : 'none',
+            bmColor: r.bookmarked ? accent : '#4a5470',
+            bmBg: r.bookmarked ? tint(0.1) : '#ffffff',
+          }));
+
+          // 10/26 ~ 11/24 일별 증가량 (마지막 7일 합 612, 30일 합 920) → 누적 스타 선 차트
+          const daily = [4, 6, 3, 5, 8, 7, 4, 9, 12, 10, 8, 15, 11, 14, 18, 13, 16, 22, 19, 25, 21, 28, 30, 58, 71, 80, 99, 121, 98, 85];
+          let total = 1486 - daily.reduce((s, v) => s + v, 0);
+          const yMin = 400;
+          const yMax = 1600;
+          const pts = daily.map((v, i) => {
+            total += v;
+            return [(i / (daily.length - 1)) * 300, 120 - ((total - yMin) / (yMax - yMin)) * 120];
+          });
+          const line = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+          const shadeX = ((daily.length - 7) / (daily.length - 1)) * 300;
+          const chart = {
+            line: line,
+            area: line + ' L300 120 L0 120 Z',
+            shadeX: shadeX.toFixed(1),
+            shadeW: (300 - shadeX).toFixed(1),
+            endTop: ((pts[pts.length - 1][1] / 120) * 100).toFixed(1) + '%',
+          };
+
+          const findings = [
+            { level: 'DANGER', rule: '원격 파이프 실행', where: 'hooks/sync.sh:12', snippet: 'curl -fsSL https://get.dalbit.io/s.sh | sh', note: '내려받은 스크립트를 검증 없이 바로 셸에서 실행합니다.' },
+            { level: 'CAUTION', rule: '외부 전송', where: 'hooks/sync.sh:31', snippet: 'curl -X POST "$ENV_SYNC_URL" --data-binary @.claude/settings.json', note: '설정 파일을 환경변수로 지정한 외부 주소로 업로드합니다.' },
+            { level: 'CAUTION', rule: '버전 미고정 MCP 패키지', where: '.mcp.json:7', snippet: '"args": ["-y", "dalbit-env-mcp"]', note: '실행할 때마다 최신 버전을 받아 오므로 패키지가 바뀌면 동작도 달라질 수 있습니다.' },
+          ].map((f) => Object.assign({}, f, { isDanger: f.level === 'DANGER', isCaution: f.level === 'CAUTION' }));
+
+          return {
+            accent: accent,
+            accentTint: tint(0.08),
+            accentWash: tint(0.12),
+            accentHair: tint(0.2),
+            accentLine: tint(0.5),
+            shadow: shadow,
+            rows: rows,
+            chart: chart,
+            findings: findings,
+          };
+        }
+      }
+    </script>
+  </body>
+</html>

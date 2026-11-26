@@ -1,0 +1,27 @@
+# 의존성·빌드 산출물
+node_modules
+dist
+build
+coverage
+*.tsbuildinfo
+.vercel
+
+# Python
+__pycache__
+*.py[cod]
+.venv
+.pytest_cache
+.ruff_cache
+*.egg-info
+
+# 환경변수 (절대 커밋 금지 — example 파일만 허용)
+.env
+.env.*
+!.env.example
+
+# 로그·OS·에디터
+*.log
+.DS_Store
+.idea
+.vscode/*
+!.vscode/extensions.json
