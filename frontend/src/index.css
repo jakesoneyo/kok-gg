@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+/* 디자인 토큰 — DESIGN.md(시안 D 소프트 프로덕트)와 동일. 값 변경은 문서와 함께. */
+@theme {
+  --color-bg: #f4f6fb;
+  --color-surface: #ffffff;
+  --color-ink: #121a2f;
+  --color-ink-2: #2c3550;
+  --color-ink-3: #4a5470;
+  --color-muted: #5f6982;
+  --color-track: #e7eaf3;
+  --color-chip: #eef1f8;
+  --color-accent: #3355d6;
+  --color-danger: #a8231a;
+}
+
+body {
+  @apply bg-bg text-ink;
+}
